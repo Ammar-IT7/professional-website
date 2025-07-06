@@ -326,7 +326,7 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
                 <div className="card-body">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="stats-grid">
                             <StatsCard
                                 title="إجمالي العملاء"
                                 value={stats.totalClients}
