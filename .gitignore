@@ -1,0 +1,115 @@
+# Dependencies
+node_modules/
+jspm_packages/
+bower_components/
+
+# Production builds
+build/
+dist/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# Electron
+*.asar
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+lib-cov
+
+# Cache directories
+.npm
+.eslintcache
+.cache
+.parcel-cache
+.fusebox/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.grunt
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Serverless directories
+.serverless/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Temporary folders
+tmp/
+temp/
+
+# Compiled binary addons
+build/Release
+
+# Editor directories and files
+.vscode/
+.vscode-test/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.exe
+*.bat
+*.ps1
+
+# Excel and other data files
+*.xlsx
+*.xls
+*.csv
+
+# Archives
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# Lock files (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml 
