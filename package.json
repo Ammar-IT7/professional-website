@@ -2,7 +2,7 @@
   "name": "professional-website",
   "version": "1.0.0",
   "description": "نظام إدارة التراخيص الاحترافي",
-  "homepage": "./",
+  "homepage": "https://Ammar-IT7.github.io/professional-website",
   "scripts": {
     "start": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts start",
     "build": "set NODE_OPTIONS=--openssl-legacy-provider && react-scripts build",
