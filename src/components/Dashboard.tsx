@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
-    const [statsCollapsed, setStatsCollapsed] = useState(false);
+
     const history = useHistory();
 
     // Load data on component mount
@@ -316,36 +316,17 @@ const Dashboard: React.FC = () => {
 
             {/* Statistics Cards */}
             <div className="card">
-                <div 
-                    className="card-header cursor-pointer transition-colors hover-bg-gray-100" 
-                    onClick={() => setStatsCollapsed(!statsCollapsed)}
-                >
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <span className="text-lg">📊</span>
-                            <h3 className="text-lg font-semibold text-gray-900">إحصائيات سريعة</h3>
-                            <span className="status-badge bg-green-100 text-green-700">
-                                8 إحصائيات
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">
-                                {statsCollapsed ? 'انقر للتوسيع' : 'انقر للطي'}
-                            </span>
-                            <svg 
-                                className={`w-5 h-5 transition-transform ${statsCollapsed ? 'rotate-180' : ''}`} 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
+                <div className="card-header">
+                    <div className="flex items-center gap-3">
+                        <span className="text-lg">📊</span>
+                        <h3 className="text-lg font-semibold text-gray-900">إحصائيات سريعة</h3>
+                        <span className="status-badge bg-green-100 text-green-700">
+                            8 إحصائيات
+                        </span>
                     </div>
                 </div>
-                {!statsCollapsed && (
-                    <div className="card-body">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+                <div className="card-body">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <StatsCard
                                 title="إجمالي العملاء"
                                 value={stats.totalClients}
@@ -409,7 +390,6 @@ const Dashboard: React.FC = () => {
                             />
                         </div>
                     </div>
-                )}
             </div>
 
             {/* Filters and Search */}

@@ -2,6 +2,39 @@ import React, { useMemo, useState } from 'react';
 import { ProcessedClient } from '../../types';
 import { formatDate, formatDateWithHijri } from '../../utils/dateUtils';
 
+// Helper function to format English date
+const formatEnglishDate = (date: Date | string | null | undefined): string => {
+    try {
+        if (!date) {
+            return 'N/A';
+        }
+        
+        let dateObj: Date;
+        
+        if (typeof date === 'string') {
+            dateObj = new Date(date);
+        } else if (date instanceof Date) {
+            dateObj = date;
+        } else {
+            return 'Invalid Date';
+        }
+        
+        if (isNaN(dateObj.getTime())) {
+            return 'Invalid Date';
+        }
+        
+        // Format date in English locale
+        return dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (error) {
+        console.error('Error formatting English date:', error);
+        return 'Invalid Date';
+    }
+};
+
 interface DataTableProps {
     data: ProcessedClient[];
     sortBy: 'expiryDate' | 'clientName' | 'product';
@@ -139,6 +172,9 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortBy, sortOrder, onSort }
                                                         <div className="text-sm font-medium">
                                                             {formatDate(client.expiryDate)}
                                                         </div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {formatEnglishDate(client.expiryDate)}
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <span className={`status-badge ${getStatusColor(new Date(client.expiryDate))}`}>
@@ -215,11 +251,17 @@ const DataTable: React.FC<DataTableProps> = ({ data, sortBy, sortOrder, onSort }
                                                     <div className="text-sm">
                                                         {formatDate(client.activationDate)}
                                                     </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {formatEnglishDate(client.activationDate)}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <div className={`text-sm ${isExpiringSoon ? 'font-medium text-red-600' : ''}`}>
                                                         {formatDate(client.expiryDate)}
                                                         {isExpiringSoon && <span className="ml-1">⚠️</span>}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {formatEnglishDate(client.expiryDate)}
                                                     </div>
                                                 </td>
                                                 <td>{client.activations || 0}</td>
