@@ -1202,6 +1202,7 @@ const Dashboard: React.FC = () => {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', fontFamily: 'Cairo, sans-serif' }}>
                         <thead style={{ backgroundColor: '#f9fafb' }}>
                           <tr>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>نوع الترخيص</th>
                             <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>المنتج</th>
                             <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>مفتاح الترخيص</th>
                             <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ التفعيل</th>
@@ -1218,6 +1219,9 @@ const Dashboard: React.FC = () => {
                                 backgroundColor: recordIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
                                 borderLeft: recordIndex === 0 ? '4px solid #f59e0b' : 'none'
                               }}>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontWeight: 600 }}>
+                                  {record.licenseName || 'غير محدد'}
+                                </td>
                                 <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.product || 'غير محدد'}</td>
                                 <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'monospace', direction: 'ltr', fontSize: '0.8rem' }}>{record.licenseKey || 'غير محدد'}</td>
                                 <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
