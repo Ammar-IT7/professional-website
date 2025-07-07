@@ -58,52 +58,94 @@ interface StatsCardProps {
   color: string;
   onClick?: () => void;
 }
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, onClick }) => (
-  <div
-    tabIndex={0}
-    role="button"
-    aria-pressed="false"
-    onClick={onClick}
-    style={{
-      background: '#f8fafc',
-      border: `2px solid ${color}`,
-      borderRadius: 16,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      padding: '1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end',
-      gap: '0.5rem',
-      cursor: 'pointer',
-      outline: 'none',
-      transition: 'box-shadow 0.15s, border 0.15s',
-      fontFamily: 'Cairo, sans-serif',
-      marginBottom: '0.5rem',
-    }}
-    onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px #2563eb'}
-    onBlur={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'}
-  >
-    <span style={{ fontSize: 32, color }}>{icon}</span>
-    <span style={{ fontWeight: 700, fontSize: 28, color: '#1e293b' }}>{value}</span>
-    <span style={{ fontWeight: 600, fontSize: 18, color: '#374151' }}>{title}</span>
-  </div>
-);
+const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, onClick }) => {
+  const isMobile = window.innerWidth <= 768;
+  const isSmallMobile = window.innerWidth <= 480;
+  
+  return (
+    <div
+      tabIndex={0}
+      role="button"
+      aria-pressed="false"
+      onClick={onClick}
+      style={{
+        background: '#f8fafc',
+        border: `2px solid ${color}`,
+        borderRadius: isSmallMobile ? 12 : 16,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        padding: isSmallMobile ? '1rem' : isMobile ? '1.25rem' : '1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: isSmallMobile ? '0.25rem' : '0.5rem',
+        cursor: 'pointer',
+        outline: 'none',
+        transition: 'box-shadow 0.15s, border 0.15s, transform 0.15s',
+        fontFamily: 'Cairo, sans-serif',
+        marginBottom: '0.5rem',
+        minHeight: isSmallMobile ? 80 : isMobile ? 100 : 120,
+        // Better touch targets for mobile
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+      onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 2px #2563eb'}
+      onBlur={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'}
+      onMouseEnter={e => {
+        if (!isSmallMobile) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isSmallMobile) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+        }
+      }}
+    >
+      <span style={{ 
+        fontSize: isSmallMobile ? 24 : isMobile ? 28 : 32, 
+        color,
+        lineHeight: 1
+      }}>{icon}</span>
+      <span style={{ 
+        fontWeight: 700, 
+        fontSize: isSmallMobile ? 20 : isMobile ? 24 : 28, 
+        color: '#1e293b',
+        lineHeight: 1
+      }}>{value}</span>
+      <span style={{ 
+        fontWeight: 600, 
+        fontSize: isSmallMobile ? 14 : isMobile ? 16 : 18, 
+        color: '#374151',
+        lineHeight: 1.2,
+        textAlign: 'center',
+        width: '100%'
+      }}>{title}</span>
+    </div>
+  );
+};
 
 interface StatsGridProps {
   children: ReactNode;
 }
-const StatsGrid: React.FC<StatsGridProps> = ({ children }) => (
-  <div style={{
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '1.5rem',
-    margin: '1.5rem 0',
-    width: '100%',
-    alignItems: 'stretch',
-    justifyItems: 'stretch',
-    padding: '0.5rem 0',
-  }}>{children}</div>
-);
+const StatsGrid: React.FC<StatsGridProps> = ({ children }) => {
+  const isMobile = window.innerWidth <= 768;
+  const isSmallMobile = window.innerWidth <= 480;
+  
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: isSmallMobile ? '1fr' : isMobile ? 'repeat(auto-fit, minmax(250px, 1fr))' : 'repeat(auto-fit, minmax(280px, 1fr))',
+      gap: isSmallMobile ? '0.5rem' : isMobile ? '0.75rem' : '1rem',
+      margin: isSmallMobile ? '0.5rem 0' : isMobile ? '0.75rem 0' : '1rem 0',
+      width: '100%',
+      alignItems: 'stretch',
+      justifyItems: 'stretch',
+      padding: '0.5rem 0',
+    }}>{children}</div>
+  );
+};
 
 // Main Dashboard
 const Dashboard: React.FC = () => {
@@ -411,34 +453,80 @@ const Dashboard: React.FC = () => {
   if (clientData.length === 0) return <Card><h2>لا توجد بيانات متاحة</h2></Card>;
 
   return (
-    <div style={{ fontFamily: 'Cairo, sans-serif', direction: 'rtl', textAlign: 'right', padding: '2rem 0' }}>
+    <div style={{ 
+      padding: window.innerWidth <= 768 ? '0.5rem' : '1rem',
+      maxWidth: '100%',
+      margin: '0 auto',
+      fontFamily: 'Cairo, sans-serif',
+      direction: 'rtl'
+    }}>
       <Notification notification={notification} onClose={() => setNotification({ ...notification, isVisible: false })} />
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+        alignItems: window.innerWidth <= 768 ? 'stretch' : 'center',
+        justifyContent: 'space-between',
+        gap: window.innerWidth <= 768 ? '1rem' : '0'
+      }}>
         <div>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: '#1e293b', margin: 0 }}>لوحة إدارة التراخيص</h1>
-          <p style={{ color: '#64748b', marginTop: 8 }}>عرض وإدارة بيانات التراخيص والعملاء</p>
+          <h1 style={{ 
+            fontSize: window.innerWidth <= 480 ? '1.5rem' : window.innerWidth <= 768 ? '1.75rem' : '2rem',
+            fontWeight: 700, 
+            color: '#1e293b',
+            margin: 0,
+            marginBottom: window.innerWidth <= 768 ? '0.5rem' : '0.25rem'
+          }}>
+            لوحة التحكم
+          </h1>
+          <p style={{ 
+            color: '#6b7280', 
+            margin: 0,
+            fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem'
+          }}>
+            إدارة تراخيص العملاء والمنتجات
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Button color="#2563eb" onClick={() => history.push('/')}>رفع ملف جديد</Button>
-          <Button color="#059669" onClick={handleExportToExcel} disabled={isExporting || filteredData.length === 0}>
-            {isExporting ? 'جاري التصدير...' : 'تصدير البيانات'}
+        <div style={{ 
+          display: 'flex', 
+          gap: '0.5rem',
+          flexWrap: window.innerWidth <= 768 ? 'wrap' : 'nowrap',
+          justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end'
+        }}>
+          <Button
+            onClick={() => history.push('/upload')}
+            color="#059669"
+            style={{ 
+              minWidth: window.innerWidth <= 480 ? '100%' : 'auto',
+              fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem',
+              padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.75rem 1.5rem'
+            }}
+          >
+            📁 رفع ملف جديد
+          </Button>
+          <Button
+            onClick={handleExportToExcel}
+            disabled={isExporting}
+            color="#7c3aed"
+            style={{ 
+              minWidth: window.innerWidth <= 480 ? '100%' : 'auto',
+              fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem',
+              padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.75rem 1.5rem'
+            }}
+          >
+            {isExporting ? (
+              <>
+                <div className="spinner"></div>
+                جاري التصدير...
+              </>
+            ) : (
+              '📊 تصدير البيانات'
+            )}
           </Button>
         </div>
       </div>
 
-      <Card style={{ marginBottom: 32 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#374151', marginBottom: 16 }}>إحصائيات سريعة</h2>
-        <StatsGrid>
-          <StatsCard title="إجمالي العملاء" value={stats.totalClients} icon="👥" color="#2563eb" onClick={() => handleCardClick('totalClients', 'جميع العملاء')} />
-          <StatsCard title="إجمالي الأجهزة" value={stats.totalDevices} icon="💻" color="#059669" onClick={() => handleCardClick('totalDevices', 'الأجهزة المرخصة')} />
-          <StatsCard title="التراخيص النشطة" value={stats.activeLicenses} icon="✅" color="#059669" onClick={() => handleCardClick('activeLicenses', 'التراخيص النشطة')} />
-          <StatsCard title="التراخيص المنتهية" value={stats.expiredLicenses} icon="❌" color="#dc2626" onClick={() => handleCardClick('expiredLicenses', 'التراخيص المنتهية')} />
-          <StatsCard title="تنتهي خلال أسبوع" value={stats.expiringInWeek} icon="⏰" color="#d97706" onClick={() => handleCardClick('expiringInWeek', 'التراخيص التي تنتهي خلال أسبوع')} />
-          <StatsCard title="تنتهي خلال شهر" value={stats.expiringInMonth} icon="📅" color="#a21caf" onClick={() => handleCardClick('expiringInMonth', 'التراخيص التي تنتهي خلال شهر')} />
-        </StatsGrid>
-      </Card>
-
       {/* Filter Panel */}
+      {/*
       <FilterPanel
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -447,10 +535,169 @@ const Dashboard: React.FC = () => {
         totalResults={filteredData.length}
         availableProducts={availableProducts}
       />
+      */}
 
+      {/* Stats Cards */}
+      <StatsGrid>
+        <StatsCard
+          title="إجمالي العملاء"
+          value={stats.totalClients}
+          icon="👥"
+          color="#3b82f6"
+          onClick={() => handleCardClick('totalClients', 'جميع العملاء')}
+        />
+        <StatsCard
+          title="التراخيص النشطة"
+          value={stats.activeLicenses}
+          icon="✅"
+          color="#059669"
+          onClick={() => handleCardClick('activeLicenses', 'التراخيص النشطة')}
+        />
+        <StatsCard
+          title="التراخيص المنتهية"
+          value={stats.expiredLicenses}
+          icon="❌"
+          color="#dc2626"
+          onClick={() => handleCardClick('expiredLicenses', 'التراخيص المنتهية')}
+        />
+        <StatsCard
+          title="تنتهي في أسبوع"
+          value={stats.expiringInWeek}
+          icon="⚠️"
+          color="#d97706"
+          onClick={() => handleCardClick('expiringInWeek', 'التراخيص التي تنتهي خلال أسبوع')}
+        />
+        <StatsCard
+          title="تنتهي في شهر"
+          value={stats.expiringInMonth}
+          icon="⏰"
+          color="#7c3aed"
+          onClick={() => handleCardClick('expiringInMonth', 'التراخيص التي تنتهي خلال شهر')}
+        />
+        <StatsCard
+          title="العملاء المكررون"
+          value={stats.duplicateClients}
+          icon="🔄"
+          color="#0891b2"
+          onClick={() => handleCardClick('duplicateClients', 'العملاء المكررون')}
+        />
+      </StatsGrid>
+
+      {/* Data Table */}
       <Card>
+        {/* Table Search and Controls */}
+        <div style={{ 
+          marginBottom: '1rem',
+          display: 'flex',
+          flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+          gap: '1rem',
+          alignItems: window.innerWidth <= 768 ? 'stretch' : 'center',
+          justifyContent: 'space-between'
+        }}>
+          {/* Table Search */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: '#374151',
+              marginBottom: '0.5rem'
+            }}>
+              🔍 البحث في الجدول
+            </label>
+            <input
+              type="text"
+              placeholder="البحث في اسم العميل، المنتج، مفتاح الترخيص..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                fontFamily: 'Cairo, sans-serif',
+                direction: 'rtl',
+                minHeight: 44
+              }}
+            />
+          </div>
+          
+          {/* Sort Controls */}
+          <div style={{ 
+            display: 'flex',
+            flexDirection: window.innerWidth <= 768 ? 'row' : 'column',
+            gap: '0.5rem',
+            alignItems: window.innerWidth <= 768 ? 'center' : 'stretch'
+          }}>
+            <label style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: 600, 
+              color: '#374151',
+              whiteSpace: 'nowrap'
+            }}>
+              ترتيب حسب:
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              style={{
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                fontFamily: 'Cairo, sans-serif',
+                direction: 'rtl',
+                minHeight: 44,
+                minWidth: window.innerWidth <= 768 ? '120px' : '150px'
+              }}
+            >
+              <option value="clientName">اسم العميل</option>
+              <option value="product">المنتج</option>
+              <option value="licenseKey">مفتاح الترخيص</option>
+              <option value="expiryDate">تاريخ الانتهاء</option>
+              <option value="status">الحالة</option>
+              <option value="daysLeft">الأيام المتبقية</option>
+              <option value="activations">التفعيلات</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              style={{
+                padding: '0.5rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                background: '#f9fafb',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontFamily: 'Cairo, sans-serif',
+                minHeight: 44,
+                minWidth: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title={sortOrder === 'asc' ? 'ترتيب تنازلي' : 'ترتيب تصاعدي'}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div style={{ 
+          marginBottom: '1rem',
+          padding: '0.5rem 0.75rem',
+          background: '#f8fafc',
+          borderRadius: '6px',
+          fontSize: '0.875rem',
+          color: '#374151',
+          fontFamily: 'Cairo, sans-serif'
+        }}>
+          عرض {filteredData.length} من {clientData.length} نتيجة
+        </div>
+
         {/* Data Table (desktop/tablet) */}
-        <div style={{ overflowX: 'auto', display: window.innerWidth < 700 ? 'none' : 'block' }}>
+        <div style={{ overflowX: 'auto', display: window.innerWidth < 768 ? 'none' : 'block' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Cairo, sans-serif', fontSize: 15 }}>
             <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0 }}>
               <tr>
@@ -628,35 +875,144 @@ const Dashboard: React.FC = () => {
           </table>
         </div>
         {/* Mobile Card View */}
-        <div style={{ display: window.innerWidth < 700 ? 'block' : 'none' }}>
+        <div style={{ display: window.innerWidth < 768 ? 'block' : 'none' }}>
           {filteredData.map((client, idx) => {
             const statusInfo = getClientStatus(client.expiryDate);
+            const isSmallMobile = window.innerWidth <= 480;
+            
             return (
               <div key={idx} style={{
                 background: '#fff',
                 border: '1px solid #e5e7eb',
-                borderRadius: 12,
+                borderRadius: isSmallMobile ? 8 : 12,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                padding: '1rem',
-                marginBottom: 12,
+                padding: isSmallMobile ? '0.75rem' : '1rem',
+                marginBottom: isSmallMobile ? 8 : 12,
                 fontFamily: 'Cairo, sans-serif',
+                // Better touch targets
+                minHeight: isSmallMobile ? 120 : 140,
+                touchAction: 'manipulation',
               }}>
-                <div style={{ fontWeight: 700, color: '#374151', fontSize: 18, fontFamily: 'Cairo, sans-serif', direction: 'rtl' }}>{client.client || 'غير محدد'}</div>
-                <div style={{ color: '#6b7280', margin: '4px 0' }}>{client.product || 'غير محدد'}</div>
-                <div style={{ color: '#374151', fontFamily: 'monospace', direction: 'ltr', margin: '4px 0' }}>مفتاح الترخيص: {client.licenseKey || 'غير محدد'}</div>
-                <div>
-                  <div style={{ color: '#374151' }}>{client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}</div>
-                  <div style={{ fontSize: '0.9em', color: '#6b7280', marginTop: 2 }}>{client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</div>
+                {/* Client Name Row */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: isSmallMobile ? 6 : 8
+                }}>
+                  <div style={{ 
+                    fontWeight: 700, 
+                    color: '#374151', 
+                    fontSize: isSmallMobile ? 16 : 18, 
+                    fontFamily: 'Cairo, sans-serif', 
+                    direction: 'rtl',
+                    flex: 1
+                  }}>
+                    {client.client || 'غير محدد'}
+                  </div>
+                  {(client as any).problems && (client as any).problems.length > 0 && (
+                    <span
+                      title={(client as any).problems.join('، ')}
+                      style={{ 
+                        color: '#d97706', 
+                        fontSize: isSmallMobile ? 16 : 18,
+                        marginLeft: 8
+                      }}
+                      aria-label="مشاكل في البيانات"
+                    >⚠️</span>
+                  )}
                 </div>
-                <div style={{ color: '#059669', fontWeight: 700, marginTop: 4 }}>التفعيلات: {client.activations || 0}</div>
-                <div style={{ color: statusInfo.color, fontWeight: 600, marginTop: 4 }}>
-                  الحالة: {statusInfo.status}
+                
+                {/* Product Row */}
+                <div style={{ 
+                  color: '#6b7280', 
+                  marginBottom: isSmallMobile ? 4 : 6,
+                  fontSize: isSmallMobile ? 14 : 15
+                }}>
+                  {client.product || 'غير محدد'}
                 </div>
-                <div style={{ color: statusInfo.color, fontWeight: 600, marginTop: 2 }}>
+                
+                {/* License Key Row */}
+                <div style={{ 
+                  color: '#374151', 
+                  fontFamily: 'monospace', 
+                  direction: 'ltr', 
+                  marginBottom: isSmallMobile ? 4 : 6,
+                  fontSize: isSmallMobile ? 12 : 13,
+                  wordBreak: 'break-all'
+                }}>
+                  مفتاح الترخيص: {client.licenseKey || 'غير محدد'}
+                </div>
+                
+                {/* Expiry Date Row */}
+                <div style={{ marginBottom: isSmallMobile ? 4 : 6 }}>
+                  <div style={{ 
+                    color: '#374151',
+                    fontSize: isSmallMobile ? 14 : 15
+                  }}>
+                    {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                  </div>
+                  {client.expiryDate && (
+                    <div style={{ 
+                      fontSize: isSmallMobile ? 11 : 12, 
+                      color: '#6b7280', 
+                      marginTop: 2 
+                    }}>
+                      {new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Status and Activations Row */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: isSmallMobile ? 4 : 6
+                }}>
+                  <div style={{ 
+                    color: '#059669', 
+                    fontWeight: 700,
+                    fontSize: isSmallMobile ? 13 : 14
+                  }}>
+                    التفعيلات: {client.activations || 0}
+                  </div>
+                  <span style={{
+                    background: statusInfo.color,
+                    color: 'white',
+                    padding: isSmallMobile ? '3px 6px' : '4px 8px',
+                    borderRadius: '8px',
+                    fontSize: isSmallMobile ? 11 : 12,
+                    fontWeight: 600,
+                    display: 'inline-block',
+                    minWidth: isSmallMobile ? '60px' : '70px',
+                    textAlign: 'center'
+                  }}>
+                    {statusInfo.status}
+                  </span>
+                </div>
+                
+                {/* Days Left Row */}
+                <div style={{ 
+                  color: statusInfo.color, 
+                  fontWeight: 600,
+                  fontSize: isSmallMobile ? 13 : 14
+                }}>
                   الأيام المتبقية: {statusInfo.daysLeftText}
                 </div>
+                
+                {/* Problems Row */}
                 {(client as any).problems && (client as any).problems.length > 0 && (
-                  <div style={{ color: '#d97706', fontWeight: 600, marginTop: 6, fontSize: 15 }}>
+                  <div style={{ 
+                    color: '#d97706', 
+                    fontWeight: 600, 
+                    marginTop: isSmallMobile ? 4 : 6, 
+                    fontSize: isSmallMobile ? 12 : 13,
+                    padding: isSmallMobile ? '4px 8px' : '6px 10px',
+                    background: '#fff7ed',
+                    borderRadius: 6,
+                    border: '1px solid #fed7aa'
+                  }}>
                     ⚠️ مشاكل: {(client as any).problems.join('، ')}
                   </div>
                 )}
@@ -665,6 +1021,86 @@ const Dashboard: React.FC = () => {
           })}
         </div>
       </Card>
+
+      {/* Floating Action Button for Mobile */}
+      {window.innerWidth <= 768 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.75rem'
+        }}>
+          <button
+            onClick={() => history.push('/upload')}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: '#059669',
+              color: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              touchAction: 'manipulation'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+            }}
+            title="رفع ملف جديد"
+          >
+            📁
+          </button>
+          <button
+            onClick={handleExportToExcel}
+            disabled={isExporting}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: isExporting ? '#9ca3af' : '#7c3aed',
+              color: 'white',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              cursor: isExporting ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              touchAction: 'manipulation'
+            }}
+            onMouseEnter={(e) => {
+              if (!isExporting) {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isExporting) {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+              }
+            }}
+            title={isExporting ? 'جاري التصدير...' : 'تصدير البيانات'}
+          >
+            {isExporting ? '⏳' : '📊'}
+          </button>
+        </div>
+      )}
+
       {/* Modal for stats card details */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle} focusTrap escToClose>
         <div style={{ minHeight: 200 }}>

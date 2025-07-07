@@ -136,7 +136,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                 <div className="card-body space-y-6">
                     {/* Tab Navigation */}
                     <div className="border-b border-gray-200">
-                        <nav className="flex space-x-8">
+                        <nav className="flex space-x-8" style={{ 
+                            flexWrap: 'wrap',
+                            gap: '0.5rem',
+                            justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-start'
+                        }}>
                             {[
                                 { id: 'basic', label: 'البحث الأساسي', icon: '🔍' },
                                 { id: 'advanced', label: 'التصفية المتقدمة', icon: '⚙️' },
@@ -150,7 +154,13 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                                             ? 'border-blue-500 text-blue-600'
                                             : 'border-transparent text-gray-500 hover-text-gray-700 hover-border-gray-300'
                                     }`}
-                                    style={{ minWidth: 44, minHeight: 44 }}
+                                    style={{ 
+                                        minWidth: window.innerWidth <= 480 ? '100%' : 44, 
+                                        minHeight: 44,
+                                        padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.5rem 0.25rem',
+                                        fontSize: window.innerWidth <= 480 ? '0.875rem' : '0.875rem',
+                                        justifyContent: window.innerWidth <= 480 ? 'center' : 'flex-start'
+                                    }}
                                 >
                                     <span>{tab.icon}</span>
                                     {tab.label}
@@ -176,31 +186,64 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
 
                             <div>
                                 <label className="form-label">📊 حالة الترخيص</label>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                                    <label className="flex items-center gap-2 cursor-pointer" style={{ background: '#f8fafc', borderRadius: 8, padding: '0.5rem 1rem', minHeight: 44 }} title="عرض التراخيص النشطة فقط">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2" style={{
+                                    gridTemplateColumns: window.innerWidth <= 480 ? '1fr' : window.innerWidth <= 768 ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+                                    gap: window.innerWidth <= 480 ? '0.5rem' : '1rem'
+                                }}>
+                                    <label className="flex items-center gap-2 cursor-pointer" style={{ 
+                                        background: '#f8fafc', 
+                                        borderRadius: 8, 
+                                        padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.5rem 1rem', 
+                                        minHeight: window.innerWidth <= 480 ? 48 : 44,
+                                        fontSize: window.innerWidth <= 480 ? '0.875rem' : '0.875rem'
+                                    }} title="عرض التراخيص النشطة فقط">
                                         <input
                                             type="checkbox"
                                             checked={filters.showActive}
                                             onChange={(e) => updateFilter({ showActive: e.target.checked })}
                                             className="rounded border-gray-300 text-blue-600 focus-ring-blue-500"
+                                            style={{ 
+                                                width: window.innerWidth <= 480 ? 20 : 16,
+                                                height: window.innerWidth <= 480 ? 20 : 16
+                                            }}
                                         />
                                         <span className="text-sm text-gray-700">✅ التراخيص النشطة</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer" style={{ background: '#f8fafc', borderRadius: 8, padding: '0.5rem 1rem', minHeight: 44 }} title="عرض التراخيص المنتهية فقط">
+                                    <label className="flex items-center gap-2 cursor-pointer" style={{ 
+                                        background: '#f8fafc', 
+                                        borderRadius: 8, 
+                                        padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.5rem 1rem', 
+                                        minHeight: window.innerWidth <= 480 ? 48 : 44,
+                                        fontSize: window.innerWidth <= 480 ? '0.875rem' : '0.875rem'
+                                    }} title="عرض التراخيص المنتهية فقط">
                                         <input
                                             type="checkbox"
                                             checked={filters.showExpired}
                                             onChange={(e) => updateFilter({ showExpired: e.target.checked })}
                                             className="rounded border-gray-300 text-blue-600 focus-ring-blue-500"
+                                            style={{ 
+                                                width: window.innerWidth <= 480 ? 20 : 16,
+                                                height: window.innerWidth <= 480 ? 20 : 16
+                                            }}
                                         />
                                         <span className="text-sm text-gray-700">❌ التراخيص المنتهية</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer" style={{ background: '#f8fafc', borderRadius: 8, padding: '0.5rem 1rem', minHeight: 44 }} title="عرض التراخيص التي ستنتهي قريباً">
+                                    <label className="flex items-center gap-2 cursor-pointer" style={{ 
+                                        background: '#f8fafc', 
+                                        borderRadius: 8, 
+                                        padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.5rem 1rem', 
+                                        minHeight: window.innerWidth <= 480 ? 48 : 44,
+                                        fontSize: window.innerWidth <= 480 ? '0.875rem' : '0.875rem'
+                                    }} title="عرض التراخيص التي ستنتهي قريباً">
                                         <input
                                             type="checkbox"
                                             checked={filters.showExpiringSoon}
                                             onChange={(e) => updateFilter({ showExpiringSoon: e.target.checked })}
                                             className="rounded border-gray-300 text-blue-600 focus-ring-blue-500"
+                                            style={{ 
+                                                width: window.innerWidth <= 480 ? 20 : 16,
+                                                height: window.innerWidth <= 480 ? 20 : 16
+                                            }}
                                         />
                                         <span className="text-sm text-gray-700">⚠️ ستنتهي قريباً</span>
                                     </label>
