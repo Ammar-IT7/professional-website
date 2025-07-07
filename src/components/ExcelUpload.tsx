@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { parseExcelFile, checkForDuplicateClients } from '../utils/excelParser';
 import { ProcessedClient, NotificationData } from '../types';
@@ -114,6 +114,25 @@ const ExcelUpload: React.FC = () => {
         setFile(null);
         showNotification('تم إزالة الملف', 'info');
     };
+
+    // Auto-load default.xlsx from public folder if no file is selected
+    useEffect(() => {
+        if (!file) {
+            fetch('/LICE.xlsx')
+                .then(res => {
+                    if (!res.ok) throw new Error('No default.xlsx found');
+                    return res.blob();
+                })
+                .then(blob => {
+                    const defaultFile = new File([blob], 'LICE.xlsx', { type: blob.type });
+                    setFile(defaultFile);
+                    showNotification('تم تحميل ملف LICE.xlsx تلقائيًا', 'info');
+                })
+                .catch(() => {
+                    // No default file found, do nothing
+                });
+        }
+    }, [file, showNotification]);
 
     return (
         <div className="container" style={{ maxWidth: '64rem', margin: '0 auto' }}>

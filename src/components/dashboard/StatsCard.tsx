@@ -99,15 +99,16 @@ const StatsCard: React.FC<StatsCardProps> = ({
             tabIndex={onClick ? 0 : undefined}
             role={onClick ? 'button' : undefined}
             aria-pressed={onClick ? 'false' : undefined}
+            style={{ minHeight: 44, minWidth: 44, padding: '1.5rem' }}
         >
-            <div className="flex items-center justify-between mb-4">
-                <div className={`stats-icon ${classes.iconBg} ${classes.iconColor} w-12 h-12 rounded-lg flex items-center justify-center text-xl`}>
+            <div className="flex items-center justify-between mb-4" style={{ minHeight: 44 }}>
+                <div className={`stats-icon ${classes.iconBg} ${classes.iconColor} w-12 h-12 rounded-lg flex items-center justify-center text-xl`} style={{ minWidth: 44, minHeight: 44, fontSize: '2rem' }}>
                     {icon}
                 </div>
                 {trend && (
-                    <div className={`flex items-center gap-1 text-sm font-medium ${classes.trend}`}>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${classes.trend}`} style={{ fontSize: '1rem' }}>
                         <span className={trend.isPositive ? 'text-green-600' : 'text-red-600'}>
-                            {trend.isPositive ? '↗' : '↘'}
+                            {trend.isPositive ? '\u2197' : '\u2198'}
                         </span>
                         <span>{trend.value}%</span>
                     </div>
@@ -116,29 +117,29 @@ const StatsCard: React.FC<StatsCardProps> = ({
             
             <div className="space-y-2">
                 <div className="flex items-baseline gap-2">
-                    <span className={`stats-value ${classes.value} text-3xl font-bold`}>
+                    <span className={`stats-value ${classes.value} text-3xl font-bold`} style={{ fontSize: '2rem' }}>
                         {value.toLocaleString()}
                     </span>
                     {percentage && (
-                        <span className={`text-sm font-medium ${classes.value} opacity-75`}>
+                        <span className={`text-sm font-medium ${classes.value} opacity-75`} style={{ fontSize: '1rem' }}>
                             ({percentage}%)
                         </span>
                     )}
                 </div>
                 
-                <h3 className={`stats-title ${classes.text} text-lg font-semibold leading-tight`}>
+                <h3 className={`stats-title ${classes.text} text-lg font-semibold leading-tight`} style={{ fontSize: '1.1rem' }}>
                     {title}
                 </h3>
                 
                 {subtitle && (
-                    <p className="text-sm text-gray-600 leading-relaxed">
+                    <p className="text-sm text-gray-600 leading-relaxed" style={{ fontSize: '0.95rem' }}>
                         {subtitle}
                     </p>
                 )}
             </div>
 
             {/* Decorative element */}
-            <div className={`absolute top-0 right-0 w-20 h-20 opacity-10 ${classes.iconColor}`}>
+            <div className={`absolute top-0 right-0 w-20 h-20 opacity-10 ${classes.iconColor}`} style={{ minWidth: 44, minHeight: 44, fontSize: '2.5rem' }}>
                 <div className="w-full h-full flex items-center justify-center text-4xl">
                     {icon}
                 </div>
