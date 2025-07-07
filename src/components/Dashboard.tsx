@@ -583,7 +583,14 @@ const Dashboard: React.FC = () => {
                                                     borderBottom: '1px solid #f3f4f6',
                                                     color: '#374151'
                                                 }}>
-                                                    {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                                                    {client.expiryDate ? (
+                                                        <div>
+                                                            <div>{new Date(client.expiryDate).toLocaleDateString('ar-SA')}</div>
+                                                            <div style={{ fontSize: '0.8em', color: '#6b7280', marginTop: '2px' }}>
+                                                                {new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                            </div>
+                                                        </div>
+                                                    ) : 'غير محدد'}
                                                 </td>
                                                 <td style={{ 
                                                     padding: '0.75rem', 
