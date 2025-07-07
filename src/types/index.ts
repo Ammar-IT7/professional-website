@@ -32,8 +32,8 @@ export interface DashboardStats {
     activeLicenses: number;
     expiredLicenses: number;
     duplicateClients: number;
-    highValueClients: number;
-    lowActivityClients: number;
+    expiringInWeek: number;
+    expiringInMonth: number;
 }
 
 export interface NotificationData {
@@ -78,4 +78,16 @@ export interface FilterOptions {
     
     // License key filters
     licenseKeyPattern: string;
+
+    // Additional advanced filters (all optional)
+    idMin?: number;
+    idMax?: number;
+    license?: string;
+    hardwareId?: string;
+    hasHardwareId?: boolean;
+    activationDateRange?: {
+        start: Date | null;
+        end: Date | null;
+    };
+    activationsEqual?: number;
 }

@@ -32,6 +32,7 @@ const ExcelUpload: React.FC = () => {
         if (selectedFile) {
             if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                 selectedFile.type === 'application/vnd.ms-excel') {
+                localStorage.removeItem('clientData'); // Reset cached data
                 setFile(selectedFile);
                 showNotification('تم اختيار الملف بنجاح', 'success');
             } else {
@@ -59,6 +60,7 @@ const ExcelUpload: React.FC = () => {
             const droppedFile = e.dataTransfer.files[0];
             if (droppedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
                 droppedFile.type === 'application/vnd.ms-excel') {
+                localStorage.removeItem('clientData'); // Reset cached data
                 setFile(droppedFile);
                 showNotification('تم رفع الملف بنجاح', 'success');
             } else {
@@ -79,10 +81,60 @@ const ExcelUpload: React.FC = () => {
             
             if (data.length === 0) {
                 showNotification('الملف لا يحتوي على بيانات صحيحة', 'error');
+                // Still allow to proceed to dashboard with empty data
+                localStorage.setItem('clientData', JSON.stringify([]));
+                setTimeout(() => {
+                    history.push('/dashboard');
+                }, 2000);
+                setIsLoading(false);
                 return;
             }
 
-            // Check for duplicate client names
+            // 1. Check for missing required columns
+            const requiredColumns = ['ID', 'Client', 'Product', 'Activation Date', 'Expiry Date', 'License Key', 'Activations', 'Hardware IDs', 'License'];
+            const firstRow = data[0] as any;
+            const missingColumns = requiredColumns.filter(col => !(col in firstRow || col.replace(/ /g, '').toLowerCase() in firstRow));
+            if (missingColumns.length > 0) {
+                showNotification(`الأعمدة التالية مفقودة في الملف: ${missingColumns.join(', ')}`, 'warning');
+                // Do not return; just warn and continue
+            }
+
+            // 2. Annotate each row with problems
+            const idCount: Record<string, number> = {};
+            const licenseKeyCount: Record<string, number> = {};
+            data.forEach(row => {
+                idCount[row.id] = (idCount[row.id] || 0) + 1;
+                licenseKeyCount[row.licenseKey] = (licenseKeyCount[row.licenseKey] || 0) + 1;
+            });
+            const now = new Date();
+            data.forEach(row => {
+                const problems: string[] = [];
+                if (!row.id) problems.push('معرف مفقود');
+                if (!row.clientName) problems.push('اسم العميل مفقود');
+                if (!row.product) problems.push('المنتج مفقود');
+                if (!row.licenseKey) problems.push('مفتاح الترخيص مفقود');
+                if (!row.activationDate) problems.push('تاريخ التفعيل مفقود');
+                if (!row.expiryDate) problems.push('تاريخ الانتهاء مفقود');
+                if (!row.license) problems.push('نوع الترخيص مفقود');
+                if (idCount[row.id] > 1) problems.push('معرف مكرر');
+                if (licenseKeyCount[row.licenseKey] > 1) problems.push('مفتاح ترخيص مكرر');
+                if (new Date(row.expiryDate) < now) problems.push('ترخيص منتهي الصلاحية');
+                (row as any).problems = problems;
+            });
+
+            // 3. Show notifications as before (unchanged)
+            const invalidRows = data.filter(row => (row as any).problems && (row as any).problems.length > 0);
+            if (invalidRows.length > 0) {
+                showNotification(`هناك ${invalidRows.length} صفوف تحتوي على مشاكل في البيانات.`, 'warning');
+            }
+
+            // 4. Warn if any expiry date is in the past
+            const expiredRows = data.filter(row => new Date(row.expiryDate) < new Date());
+            if (expiredRows.length > 0) {
+                showNotification(`هناك ${expiredRows.length} ترخيص منتهي الصلاحية في الملف.`, 'warning');
+            }
+
+            // Check for duplicate client names (existing logic)
             const duplicateClients = checkForDuplicateClients(data);
             
             if (duplicateClients.length > 0) {
@@ -116,23 +168,23 @@ const ExcelUpload: React.FC = () => {
     };
 
     // Auto-load default.xlsx from public folder if no file is selected
-    useEffect(() => {
-        if (!file) {
-            fetch('/LICE.xlsx')
-                .then(res => {
-                    if (!res.ok) throw new Error('No default.xlsx found');
-                    return res.blob();
-                })
-                .then(blob => {
-                    const defaultFile = new File([blob], 'LICE.xlsx', { type: blob.type });
-                    setFile(defaultFile);
-                    showNotification('تم تحميل ملف LICE.xlsx تلقائيًا', 'info');
-                })
-                .catch(() => {
-                    // No default file found, do nothing
-                });
-        }
-    }, [file, showNotification]);
+    // useEffect(() => {
+    //     if (!file) {
+    //         fetch('/LICE.xlsx')
+    //             .then(res => {
+    //                 if (!res.ok) throw new Error('No default.xlsx found');
+    //                 return res.blob();
+    //             })
+    //             .then(blob => {
+    //                 const defaultFile = new File([blob], 'LICE.xlsx', { type: blob.type });
+    //                 setFile(defaultFile);
+    //                 showNotification('تم تحميل ملف LICE.xlsx تلقائيًا', 'info');
+    //             })
+    //             .catch(() => {
+    //                 // No default file found, do nothing
+    //             });
+    //     }
+    // }, [file, showNotification]);
 
     return (
         <div className="container" style={{ maxWidth: '64rem', margin: '0 auto' }}>

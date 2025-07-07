@@ -335,6 +335,7 @@ export const getDuplicateClientsWithDetails = (data: ProcessedClient[]): Array<{
 export const calculateDashboardStats = (data: ProcessedClient[]): DashboardStats => {
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     
     const totalClients = data.length;
     const totalDevices = data.reduce((sum, client) => sum + (client.hardwareIds?.length || 0), 0);
@@ -360,15 +361,17 @@ export const calculateDashboardStats = (data: ProcessedClient[]): DashboardStats
         clientNames.indexOf(name) !== index
     ).length;
 
-    // Calculate high value clients (more than 5 activations or 3 devices)
-    const highValueClients = data.filter(client => 
-        (client.activations || 0) > 5 || (client.hardwareIds?.length || 0) > 3
-    ).length;
+    // Calculate licenses expiring in a week
+    const expiringInWeek = data.filter(client => {
+        const expiryDate = new Date(client.expiryDate);
+        return expiryDate > now && expiryDate <= weekFromNow;
+    }).length;
 
-    // Calculate low activity clients (0-1 activations)
-    const lowActivityClients = data.filter(client => 
-        (client.activations || 0) <= 1
-    ).length;
+    // Calculate licenses expiring in a month
+    const expiringInMonth = data.filter(client => {
+        const expiryDate = new Date(client.expiryDate);
+        return expiryDate > now && expiryDate <= thirtyDaysFromNow;
+    }).length;
 
     return {
         totalClients,
@@ -377,8 +380,8 @@ export const calculateDashboardStats = (data: ProcessedClient[]): DashboardStats
         activeLicenses,
         expiredLicenses,
         duplicateClients,
-        highValueClients,
-        lowActivityClients
+        expiringInWeek,
+        expiringInMonth
     };
 };
 
