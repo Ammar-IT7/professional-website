@@ -7,6 +7,7 @@ import DataTable from './dashboard/DataTable';
 import FilterPanel from './dashboard/FilterPanel';
 import LoadingSpinner from './common/LoadingSpinner';
 import EmptyState from './common/EmptyState';
+import Modal from './common/Modal';
 
 const Dashboard: React.FC = () => {
     const [stats, setStats] = useState<DashboardStats>({
@@ -43,6 +44,9 @@ const Dashboard: React.FC = () => {
     });
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalData, setModalData] = useState<ProcessedClient[]>([]);
 
     const history = useHistory();
 
@@ -265,6 +269,55 @@ const Dashboard: React.FC = () => {
         }
     }, [sortBy, sortOrder]);
 
+    // Helper to filter data for each card
+    const getCardData = (type: string) => {
+        switch (type) {
+            case 'totalClients':
+                return clientData;
+            case 'totalDevices':
+                return clientData.filter(c => c.hardwareIds && c.hardwareIds.length > 0);
+            case 'activeLicenses':
+                return clientData.filter(c => {
+                    const expiry = new Date(c.expiryDate);
+                    return expiry > new Date();
+                });
+            case 'expiredLicenses':
+                return clientData.filter(c => {
+                    const expiry = new Date(c.expiryDate);
+                    return expiry <= new Date();
+                });
+            case 'expiringInWeek':
+                const week = new Date();
+                week.setDate(week.getDate() + 7);
+                return clientData.filter(c => {
+                    const expiry = new Date(c.expiryDate);
+                    return expiry > new Date() && expiry <= week;
+                });
+            case 'expiringInTwoWeeks':
+                const week2 = new Date();
+                week2.setDate(week2.getDate() + 14);
+                const week1 = new Date();
+                week1.setDate(week1.getDate() + 7);
+                return clientData.filter(c => {
+                    const expiry = new Date(c.expiryDate);
+                    return expiry > week1 && expiry <= week2;
+                });
+            case 'highValueClients':
+                return clientData.filter(c => (c.activations || 0) > 5 || (c.hardwareIds?.length || 0) > 3);
+            case 'lowActivityClients':
+                return clientData.filter(c => (c.activations || 0) <= 1);
+            default:
+                return [];
+        }
+    };
+
+    const handleCardClick = (type: string, title: string) => {
+        console.log('Card clicked:', type, title);
+        setModalTitle(title);
+        setModalData(getCardData(type));
+        setModalOpen(true);
+    };
+
     if (isLoading) {
         return <LoadingSpinner message="جاري تحميل البيانات..." />;
     }
@@ -334,6 +387,7 @@ const Dashboard: React.FC = () => {
                                 color="blue"
                                 subtitle="جميع العملاء المسجلين"
                                 percentage={Math.round((stats.totalClients / Math.max(clientData.length, 1)) * 100)}
+                                onClick={() => handleCardClick('totalClients', 'جميع العملاء')}
                             />
                             <StatsCard
                                 title="إجمالي الأجهزة"
@@ -341,6 +395,7 @@ const Dashboard: React.FC = () => {
                                 icon="💻"
                                 color="green"
                                 subtitle="الأجهزة المرخصة"
+                                onClick={() => handleCardClick('totalDevices', 'الأجهزة المرخصة')}
                             />
                             <StatsCard
                                 title="التراخيص النشطة"
@@ -349,6 +404,7 @@ const Dashboard: React.FC = () => {
                                 color="green"
                                 subtitle="تراخيص صالحة"
                                 percentage={Math.round((stats.activeLicenses / Math.max(clientData.length, 1)) * 100)}
+                                onClick={() => handleCardClick('activeLicenses', 'التراخيص النشطة')}
                             />
                             <StatsCard
                                 title="التراخيص المنتهية"
@@ -357,6 +413,7 @@ const Dashboard: React.FC = () => {
                                 color="red"
                                 subtitle="تراخيص منتهية الصلاحية"
                                 percentage={Math.round((stats.expiredLicenses / Math.max(clientData.length, 1)) * 100)}
+                                onClick={() => handleCardClick('expiredLicenses', 'التراخيص المنتهية')}
                             />
                             <StatsCard
                                 title="تنتهي خلال أسبوع"
@@ -364,6 +421,7 @@ const Dashboard: React.FC = () => {
                                 icon="🚨"
                                 color="red"
                                 subtitle="تحتاج تجديد عاجل"
+                                onClick={() => handleCardClick('expiringInWeek', 'تنتهي خلال أسبوع')}
                             />
                             <StatsCard
                                 title="تنتهي خلال أسبوعين"
@@ -371,6 +429,7 @@ const Dashboard: React.FC = () => {
                                 icon="⚠️"
                                 color="orange"
                                 subtitle="تحتاج متابعة"
+                                onClick={() => handleCardClick('expiringInTwoWeeks', 'تنتهي خلال أسبوعين')}
                             />
                             <StatsCard
                                 title="عملاء عالي القيمة"
@@ -379,6 +438,7 @@ const Dashboard: React.FC = () => {
                                 color="purple"
                                 subtitle="أكثر من 5 تفعيلات"
                                 percentage={Math.round((additionalStats.highValueClients / Math.max(clientData.length, 1)) * 100)}
+                                onClick={() => handleCardClick('highValueClients', 'عملاء عالي القيمة')}
                             />
                             <StatsCard
                                 title="عملاء منخفض النشاط"
@@ -387,6 +447,7 @@ const Dashboard: React.FC = () => {
                                 color="yellow"
                                 subtitle="0-1 تفعيل"
                                 percentage={Math.round((additionalStats.lowActivityClients / Math.max(clientData.length, 1)) * 100)}
+                                onClick={() => handleCardClick('lowActivityClients', 'عملاء منخفض النشاط')}
                             />
                         </div>
                     </div>
@@ -409,6 +470,159 @@ const Dashboard: React.FC = () => {
                 sortOrder={sortOrder}
                 onSort={handleSort}
             />
+
+            {/* Modal */}
+            <Modal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                title={modalTitle}
+            >
+                <div style={{ minHeight: '200px' }}>
+                    {modalData.length > 0 ? (
+                        <div>
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                                gap: '1rem',
+                                marginBottom: '1rem'
+                            }}>
+                                <div style={{
+                                    padding: '1rem',
+                                    backgroundColor: '#f8fafc',
+                                    borderRadius: '0.5rem',
+                                    border: '1px solid #e2e8f0'
+                                }}>
+                                    <div style={{ fontWeight: 'bold', color: '#374151', marginBottom: '0.5rem' }}>
+                                        إجمالي النتائج
+                                    </div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>
+                                        {modalData.length}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style={{ 
+                                maxHeight: '400px', 
+                                overflow: 'auto',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '0.5rem'
+                            }}>
+                                <table style={{ 
+                                    width: '100%', 
+                                    borderCollapse: 'collapse',
+                                    fontSize: '0.875rem'
+                                }}>
+                                    <thead style={{ 
+                                        backgroundColor: '#f9fafb',
+                                        position: 'sticky',
+                                        top: 0
+                                    }}>
+                                        <tr>
+                                            <th style={{ 
+                                                padding: '0.75rem', 
+                                                textAlign: 'right', 
+                                                borderBottom: '1px solid #e5e7eb',
+                                                fontWeight: 'bold',
+                                                color: '#374151'
+                                            }}>
+                                                اسم العميل
+                                            </th>
+                                            <th style={{ 
+                                                padding: '0.75rem', 
+                                                textAlign: 'right', 
+                                                borderBottom: '1px solid #e5e7eb',
+                                                fontWeight: 'bold',
+                                                color: '#374151'
+                                            }}>
+                                                المنتج
+                                            </th>
+                                            <th style={{ 
+                                                padding: '0.75rem', 
+                                                textAlign: 'right', 
+                                                borderBottom: '1px solid #e5e7eb',
+                                                fontWeight: 'bold',
+                                                color: '#374151'
+                                            }}>
+                                                تاريخ الانتهاء
+                                            </th>
+                                            <th style={{ 
+                                                padding: '0.75rem', 
+                                                textAlign: 'right', 
+                                                borderBottom: '1px solid #e5e7eb',
+                                                fontWeight: 'bold',
+                                                color: '#374151'
+                                            }}>
+                                                التفعيلات
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {modalData.slice(0, 20).map((client, index) => (
+                                            <tr key={index} style={{ 
+                                                backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb'
+                                            }}>
+                                                <td style={{ 
+                                                    padding: '0.75rem', 
+                                                    textAlign: 'right', 
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    color: '#374151'
+                                                }}>
+                                                    {client.clientName || 'غير محدد'}
+                                                </td>
+                                                <td style={{ 
+                                                    padding: '0.75rem', 
+                                                    textAlign: 'right', 
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    color: '#374151'
+                                                }}>
+                                                    {client.product || 'غير محدد'}
+                                                </td>
+                                                <td style={{ 
+                                                    padding: '0.75rem', 
+                                                    textAlign: 'right', 
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    color: '#374151'
+                                                }}>
+                                                    {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                                                </td>
+                                                <td style={{ 
+                                                    padding: '0.75rem', 
+                                                    textAlign: 'right', 
+                                                    borderBottom: '1px solid #f3f4f6',
+                                                    color: '#374151'
+                                                }}>
+                                                    {client.activations || 0}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            {modalData.length > 20 && (
+                                <div style={{ 
+                                    marginTop: '1rem', 
+                                    padding: '0.75rem',
+                                    backgroundColor: '#fef3c7',
+                                    borderRadius: '0.5rem',
+                                    textAlign: 'center',
+                                    color: '#92400e'
+                                }}>
+                                    عرض أول 20 نتيجة من أصل {modalData.length} نتيجة
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div style={{ 
+                            textAlign: 'center', 
+                            padding: '2rem',
+                            color: '#6b7280'
+                        }}>
+                            لا توجد بيانات متاحة
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 };

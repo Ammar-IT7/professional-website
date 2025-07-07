@@ -11,6 +11,7 @@ interface StatsCardProps {
     };
     subtitle?: string;
     percentage?: number;
+    onClick?: () => void;
 }
 
 const StatsCard: React.FC<StatsCardProps> = ({ 
@@ -20,7 +21,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
     color, 
     trend, 
     subtitle,
-    percentage 
+    percentage,
+    onClick
 }) => {
     const colorClasses = {
         blue: {
@@ -91,7 +93,13 @@ const StatsCard: React.FC<StatsCardProps> = ({
     const classes = colorClasses[color];
 
     return (
-        <div className={`stats-card ${classes.bg} ${classes.border} border rounded-xl p-6 transition-all duration-200 hover-shadow-lg hover-scale-105`}>
+        <div
+            className={`stats-card ${classes.bg} ${classes.border} border rounded-xl p-6 transition-all duration-200 hover-shadow-lg hover-scale-105${onClick ? ' cursor-pointer' : ''}`}
+            onClick={onClick}
+            tabIndex={onClick ? 0 : undefined}
+            role={onClick ? 'button' : undefined}
+            aria-pressed={onClick ? 'false' : undefined}
+        >
             <div className="flex items-center justify-between mb-4">
                 <div className={`stats-icon ${classes.iconBg} ${classes.iconColor} w-12 h-12 rounded-lg flex items-center justify-center text-xl`}>
                     {icon}
