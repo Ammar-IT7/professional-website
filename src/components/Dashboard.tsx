@@ -195,6 +195,7 @@ const Dashboard: React.FC = () => {
     latestActivation: Date;
     oldestActivation: Date;
   }>>([]);
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
   // Fix NotificationData type for notification state
   const [notification, setNotification] = useState<{ message: string; type: 'info' | 'error' | 'success' | 'warning'; isVisible: boolean }>({ message: '', type: 'info', isVisible: false });
 
@@ -302,6 +303,7 @@ const Dashboard: React.FC = () => {
   };
   const handleCardClick = (type: string, title: string) => {
     setModalTitle(title);
+    setModalSearchTerm(''); // Clear search when opening modal
     if (type === 'duplicateClients') {
       const duplicateData = getDuplicateClientsWithDetails(clientData);
       setDuplicateGroups(duplicateData);
@@ -412,10 +414,22 @@ const Dashboard: React.FC = () => {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
-  // Sort modal data
+  // Sort and filter modal data
   const sortedModalData = useMemo(() => {
-    const sorted = [...modalData];
-    sorted.sort((a, b) => {
+    let filtered = [...modalData];
+    
+    // Apply search filter
+    if (modalSearchTerm.trim()) {
+      filtered = filtered.filter(client =>
+        (client.clientName?.toLowerCase() || '').includes(modalSearchTerm.toLowerCase()) ||
+        (client.licenseName?.toLowerCase() || '').includes(modalSearchTerm.toLowerCase()) ||
+        (client.product?.toLowerCase() || '').includes(modalSearchTerm.toLowerCase()) ||
+        (client.licenseKey?.toLowerCase() || '').includes(modalSearchTerm.toLowerCase())
+      );
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
       let comparison = 0;
       
       switch (modalSortBy) {
@@ -450,8 +464,8 @@ const Dashboard: React.FC = () => {
  
       return modalSortOrder === 'asc' ? comparison : -comparison;
     });
-    return sorted;
-  }, [modalData, modalSortBy, modalSortOrder]);
+    return filtered;
+  }, [modalData, modalSortBy, modalSortOrder, modalSearchTerm]);
 
   const handleModalSort = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
     if (modalSortBy === column) {
@@ -580,14 +594,14 @@ const Dashboard: React.FC = () => {
           onClick={() => handleCardClick('expiredLicenses', 'التراخيص المنتهية')}
         />
         <StatsCard
-          title="تنتهي في أسبوع"
+          title="تنتهي في هذا الاسبوع"
           value={stats.expiringInWeek}
           icon="⚠️"
           color="#d97706"
           onClick={() => handleCardClick('expiringInWeek', 'التراخيص التي تنتهي خلال أسبوع')}
         />
         <StatsCard
-          title="تنتهي في شهر"
+          title="تنتهي في هذا الشهر"
           value={stats.expiringInMonth}
           icon="⏰"
           color="#7c3aed"
@@ -1121,7 +1135,10 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Modal for stats card details */}
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle} focusTrap escToClose>
+      <Modal isOpen={modalOpen} onClose={() => {
+        setModalOpen(false);
+        setModalSearchTerm(''); // Clear search when closing modal
+      }} title={modalTitle} focusTrap escToClose>
         <div style={{ minHeight: 200 }}>
           {isDuplicateClientsModal ? (
             // Duplicate clients grouped view
@@ -1153,117 +1170,332 @@ const Dashboard: React.FC = () => {
                   <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626' }}>{duplicateGroups.reduce((total, group) => total + group.records.length, 0)}</div>
                 </div>
               </div>
-              <div style={{ maxHeight: 500, overflow: 'auto' }}>
-                {duplicateGroups.map((group, groupIndex) => (
-                  <div key={groupIndex} style={{ 
-                    marginBottom: '1.5rem', 
-                    border: '2px solid #e5e7eb', 
-                    borderRadius: '0.75rem',
-                    overflow: 'hidden',
-                    backgroundColor: '#fafafa'
+              
+              {/* Search Input */}
+              <div style={{ 
+                marginBottom: '1rem',
+                display: 'flex',
+                gap: '0.5rem',
+                flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                alignItems: window.innerWidth <= 768 ? 'stretch' : 'center'
+              }}>
+                <div style={{ 
+                  flex: 1,
+                  position: 'relative',
+                  maxWidth: window.innerWidth <= 768 ? '100%' : '400px'
+                }}>
+                  <input
+                    type="text"
+                    placeholder="البحث في العملاء المكررين..."
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      paddingRight: '2.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.95rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      direction: 'rtl',
+                      backgroundColor: '#fff',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#6b7280',
+                    fontSize: '1.1rem'
                   }}>
-                    {/* Group Header */}
-                    <div style={{
-                      padding: '1rem',
-                      backgroundColor: '#fef3c7',
-                      borderBottom: '2px solid #e5e7eb',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '0.5rem'
+                    🔍
+                  </span>
+                </div>
+                {modalSearchTerm && (
+                  <button
+                    onClick={() => setModalSearchTerm('')}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      fontWeight: 600,
+                      transition: 'background-color 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                  >
+                    مسح البحث
+                  </button>
+                )}
+              </div>
+              
+              <div style={{ maxHeight: 500, overflow: 'auto' }}>
+                {duplicateGroups
+                  .filter(group => 
+                    modalSearchTerm === '' || 
+                    group.clientName.toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
+                    group.records.some(record => 
+                      (record.product || '').toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
+                      (record.licenseKey || '').toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
+                      (record.licenseName || '').toLowerCase().includes(modalSearchTerm.toLowerCase())
+                    )
+                  )
+                  .map((group, groupIndex) => (
+                    <div key={groupIndex} style={{ 
+                      marginBottom: '1.5rem', 
+                      border: '2px solid #e5e7eb', 
+                      borderRadius: '0.75rem',
+                      overflow: 'hidden',
+                      backgroundColor: '#fafafa'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#92400e' }}>🔄</span>
-                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#92400e', fontFamily: 'Cairo, sans-serif' }}>
-                          {group.clientName}
-                        </span>
-                        <span style={{
-                          background: '#dc2626',
-                          color: 'white',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          fontSize: '0.8em',
-                          fontWeight: 600
-                        }}>
-                          {group.records.length} سجل
-                        </span>
+                      {/* Group Header */}
+                      <div style={{
+                        padding: '1rem',
+                        backgroundColor: '#fef3c7',
+                        borderBottom: '2px solid #e5e7eb',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#92400e' }}>🔄</span>
+                          <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#92400e', fontFamily: 'Cairo, sans-serif' }}>
+                            {group.clientName}
+                          </span>
+                          <span style={{
+                            background: '#dc2626',
+                            color: 'white',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.8em',
+                            fontWeight: 600
+                          }}>
+                            {group.records.length} سجل
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280', fontFamily: 'Cairo, sans-serif' }}>
+                          <div>أحدث تفعيل: {group.latestActivation.toLocaleDateString('ar-SA')}</div>
+                          <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.latestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                          <div style={{ marginTop: '0.5rem' }}>أقدم تفعيل: {group.oldestActivation.toLocaleDateString('ar-SA')}</div>
+                          <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.oldestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.9rem', color: '#6b7280', fontFamily: 'Cairo, sans-serif' }}>
-                        <div>أحدث تفعيل: {group.latestActivation.toLocaleDateString('ar-SA')}</div>
-                        <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.latestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                        <div style={{ marginTop: '0.5rem' }}>أقدم تفعيل: {group.oldestActivation.toLocaleDateString('ar-SA')}</div>
-                        <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.oldestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                      
+                      {/* Group Records Table - Desktop */}
+                      <div style={{ display: window.innerWidth >= 768 ? 'block' : 'none', overflow: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', fontFamily: 'Cairo, sans-serif' }}>
+                          <thead style={{ backgroundColor: '#f9fafb' }}>
+                            <tr>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>نوع الترخيص</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>المنتج</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>مفتاح الترخيص</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ التفعيل</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ الانتهاء</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الحالة</th>
+                              <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الفعيلات</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.records.map((record, recordIndex) => {
+                              const statusInfo = getClientStatus(record.expiryDate);
+                              return (
+                                <tr key={recordIndex} style={{ 
+                                  backgroundColor: recordIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                                  borderLeft: recordIndex === 0 ? '4px solid #f59e0b' : 'none'
+                                }}>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontWeight: 600 }}>
+                                    {record.licenseName || 'غير محدد'}
+                                  </td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.product || 'غير محدد'}</td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'monospace', direction: 'ltr', fontSize: '0.8rem' }}>{record.licenseKey || 'غير محدد'}</td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                    {record.activationDate ? (
+                                      <div>
+                                        <div>{new Date(record.activationDate).toLocaleDateString('ar-SA')}</div>
+                                        <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.activationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                      </div>
+                                    ) : 'غير محدد'}
+                                  </td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                    {record.expiryDate ? (
+                                      <div>
+                                        <div>{new Date(record.expiryDate).toLocaleDateString('ar-SA')}</div>
+                                        <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                      </div>
+                                    ) : 'غير محدد'}
+                                  </td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                    <span style={{
+                                      background: statusInfo.color,
+                                      color: 'white',
+                                      padding: '3px 6px',
+                                      borderRadius: '8px',
+                                      fontSize: '0.75em',
+                                      fontWeight: 600,
+                                      display: 'inline-block',
+                                      minWidth: '60px',
+                                      textAlign: 'center'
+                                    }}>
+                                      {statusInfo.status}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.activations || 0}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                    </div>
-                    
-                    {/* Group Records Table */}
-                    <div style={{ overflow: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', fontFamily: 'Cairo, sans-serif' }}>
-                        <thead style={{ backgroundColor: '#f9fafb' }}>
-                          <tr>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>نوع الترخيص</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>المنتج</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>مفتاح الترخيص</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ التفعيل</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ الانتهاء</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الحالة</th>
-                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الفعيلات</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {group.records.map((record, recordIndex) => {
-                            const statusInfo = getClientStatus(record.expiryDate);
-                            return (
-                              <tr key={recordIndex} style={{ 
-                                backgroundColor: recordIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
-                                borderLeft: recordIndex === 0 ? '4px solid #f59e0b' : 'none'
+                      
+                      {/* Group Records Mobile Cards */}
+                      <div style={{ display: window.innerWidth < 768 ? 'block' : 'none' }}>
+                        {group.records.map((record, recordIndex) => {
+                          const statusInfo = getClientStatus(record.expiryDate);
+                          const isSmallMobile = window.innerWidth <= 480;
+                          
+                          return (
+                            <div key={recordIndex} style={{
+                              background: '#fff',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: isSmallMobile ? 8 : 12,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                              padding: isSmallMobile ? '0.75rem' : '1rem',
+                              marginBottom: isSmallMobile ? 8 : 12,
+                              fontFamily: 'Cairo, sans-serif',
+                              minHeight: isSmallMobile ? 120 : 140,
+                              touchAction: 'manipulation',
+                              borderLeft: recordIndex === 0 ? '4px solid #f59e0b' : 'none'
+                            }}>
+                              {/* License Type Row */}
+                              <div style={{ 
+                                fontWeight: 700, 
+                                color: '#92400e', 
+                                marginBottom: isSmallMobile ? 6 : 8,
+                                fontSize: isSmallMobile ? 14 : 16
                               }}>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontWeight: 600 }}>
-                                  {record.licenseName || 'غير محدد'}
-                                </td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.product || 'غير محدد'}</td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'monospace', direction: 'ltr', fontSize: '0.8rem' }}>{record.licenseKey || 'غير محدد'}</td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
-                                  {record.activationDate ? (
-                                    <div>
-                                      <div>{new Date(record.activationDate).toLocaleDateString('ar-SA')}</div>
-                                      <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.activationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                                    </div>
-                                  ) : 'غير محدد'}
-                                </td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
-                                  {record.expiryDate ? (
-                                    <div>
-                                      <div>{new Date(record.expiryDate).toLocaleDateString('ar-SA')}</div>
-                                      <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                                    </div>
-                                  ) : 'غير محدد'}
-                                </td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
-                                  <span style={{
-                                    background: statusInfo.color,
-                                    color: 'white',
-                                    padding: '3px 6px',
-                                    borderRadius: '8px',
-                                    fontSize: '0.75em',
-                                    fontWeight: 600,
-                                    display: 'inline-block',
-                                    minWidth: '60px',
-                                    textAlign: 'center'
+                                نوع الترخيص: {record.licenseName || 'غير محدد'}
+                              </div>
+                              
+                              {/* Product Row */}
+                              <div style={{ 
+                                color: '#6b7280', 
+                                marginBottom: isSmallMobile ? 4 : 6,
+                                fontSize: isSmallMobile ? 14 : 15
+                              }}>
+                                المنتج: {record.product || 'غير محدد'}
+                              </div>
+                              
+                              {/* License Key Row */}
+                              <div style={{ 
+                                color: '#374151', 
+                                fontFamily: 'monospace', 
+                                direction: 'ltr', 
+                                marginBottom: isSmallMobile ? 4 : 6,
+                                fontSize: isSmallMobile ? 12 : 13,
+                                wordBreak: 'break-all'
+                              }}>
+                                مفتاح الترخيص: {record.licenseKey || 'غير محدد'}
+                              </div>
+                              
+                              {/* Activation Date Row */}
+                              <div style={{ marginBottom: isSmallMobile ? 4 : 6 }}>
+                                <div style={{ 
+                                  color: '#374151',
+                                  fontSize: isSmallMobile ? 14 : 15
+                                }}>
+                                  تاريخ التفعيل: {record.activationDate ? new Date(record.activationDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                                </div>
+                                {record.activationDate && (
+                                  <div style={{ 
+                                    fontSize: isSmallMobile ? 11 : 12, 
+                                    color: '#6b7280', 
+                                    marginTop: 2 
                                   }}>
-                                    {statusInfo.status}
-                                  </span>
-                                </td>
-                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.activations || 0}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                    {new Date(record.activationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Expiry Date Row */}
+                              <div style={{ marginBottom: isSmallMobile ? 4 : 6 }}>
+                                <div style={{ 
+                                  color: '#374151',
+                                  fontSize: isSmallMobile ? 14 : 15
+                                }}>
+                                  تاريخ الانتهاء: {record.expiryDate ? new Date(record.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                                </div>
+                                {record.expiryDate && (
+                                  <div style={{ 
+                                    fontSize: isSmallMobile ? 11 : 12, 
+                                    color: '#6b7280', 
+                                    marginTop: 2 
+                                  }}>
+                                    {new Date(record.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Status and Activations Row */}
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                marginBottom: isSmallMobile ? 4 : 6
+                              }}>
+                                <div style={{ 
+                                  color: '#059669', 
+                                  fontWeight: 700,
+                                  fontSize: isSmallMobile ? 13 : 14
+                                }}>
+                                  التفعيلات: {record.activations || 0}
+                                </div>
+                                <span style={{
+                                  background: statusInfo.color,
+                                  color: 'white',
+                                  padding: isSmallMobile ? '3px 6px' : '4px 8px',
+                                  borderRadius: '8px',
+                                  fontSize: isSmallMobile ? 11 : 12,
+                                  fontWeight: 600,
+                                  display: 'inline-block',
+                                  minWidth: isSmallMobile ? '60px' : '70px',
+                                  textAlign: 'center'
+                                }}>
+                                  {statusInfo.status}
+                                </span>
+                              </div>
+                              
+                              {/* Days Left Row */}
+                              <div style={{ 
+                                color: statusInfo.color, 
+                                fontWeight: 600,
+                                fontSize: isSmallMobile ? 13 : 14
+                              }}>
+                                الأيام المتبقية: {statusInfo.daysLeftText}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           ) : modalData.length > 0 ? (
@@ -1286,7 +1518,83 @@ const Dashboard: React.FC = () => {
                   <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>{modalData.length}</div>
                 </div>
               </div>
-              <div style={{ maxHeight: 400, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }}>
+              
+              {/* Search Input */}
+              <div style={{ 
+                marginBottom: '1rem',
+                display: 'flex',
+                gap: '0.5rem',
+                flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
+                alignItems: window.innerWidth <= 768 ? 'stretch' : 'center'
+              }}>
+                <div style={{ 
+                  flex: 1,
+                  position: 'relative',
+                  maxWidth: window.innerWidth <= 768 ? '100%' : '400px'
+                }}>
+                  <input
+                    type="text"
+                    placeholder="البحث في النتائج..."
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem 1rem',
+                      paddingRight: '2.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.95rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      direction: 'rtl',
+                      backgroundColor: '#fff',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#3b82f6';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    right: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#6b7280',
+                    fontSize: '1.1rem'
+                  }}>
+                    🔍
+                  </span>
+                </div>
+                {modalSearchTerm && (
+                  <button
+                    onClick={() => setModalSearchTerm('')}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      backgroundColor: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      fontWeight: 600,
+                      transition: 'background-color 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+                  >
+                    مسح البحث
+                  </button>
+                )}
+              </div>
+              
+              {/* Desktop Table View */}
+              <div style={{ display: window.innerWidth >= 768 ? 'block' : 'none', maxHeight: 400, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem', fontFamily: 'Cairo, sans-serif' }}>
                   <thead style={{ backgroundColor: '#f9fafb', position: 'sticky', top: 0 }}>
                     <tr>
@@ -1460,6 +1768,118 @@ const Dashboard: React.FC = () => {
                     })}
                   </tbody>
                 </table>
+              </div>
+              
+              {/* Mobile Card View */}
+              <div style={{ display: window.innerWidth < 768 ? 'block' : 'none' }}>
+                {sortedModalData.map((client, index) => {
+                  const statusInfo = getClientStatus(client.expiryDate);
+                  const isSmallMobile = window.innerWidth <= 480;
+                  
+                  return (
+                    <div key={index} style={{
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: isSmallMobile ? 8 : 12,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      padding: isSmallMobile ? '0.75rem' : '1rem',
+                      marginBottom: isSmallMobile ? 8 : 12,
+                      fontFamily: 'Cairo, sans-serif',
+                      minHeight: isSmallMobile ? 120 : 140,
+                      touchAction: 'manipulation',
+                    }}>
+                      {/* Client Name Row */}
+                      <div style={{ 
+                        fontWeight: 700, 
+                        color: '#374151', 
+                        marginBottom: isSmallMobile ? 6 : 8,
+                        fontSize: isSmallMobile ? 16 : 18, 
+                        fontFamily: 'Cairo, sans-serif', 
+                        direction: 'rtl'
+                      }}>
+                        {client.client || 'غير محدد'}
+                      </div>
+                      
+                      {/* Product Row */}
+                      <div style={{ 
+                        color: '#6b7280', 
+                        marginBottom: isSmallMobile ? 4 : 6,
+                        fontSize: isSmallMobile ? 14 : 15
+                      }}>
+                        المنتج: {client.product || 'غير محدد'}
+                      </div>
+                      
+                      {/* License Key Row */}
+                      <div style={{ 
+                        color: '#374151', 
+                        fontFamily: 'monospace', 
+                        direction: 'ltr', 
+                        marginBottom: isSmallMobile ? 4 : 6,
+                        fontSize: isSmallMobile ? 12 : 13,
+                        wordBreak: 'break-all'
+                      }}>
+                        مفتاح الترخيص: {client.licenseKey || 'غير محدد'}
+                      </div>
+                      
+                      {/* Expiry Date Row */}
+                      <div style={{ marginBottom: isSmallMobile ? 4 : 6 }}>
+                        <div style={{ 
+                          color: '#374151',
+                          fontSize: isSmallMobile ? 14 : 15
+                        }}>
+                          تاريخ الانتهاء: {client.expiryDate ? new Date(client.expiryDate).toLocaleDateString('ar-SA') : 'غير محدد'}
+                        </div>
+                        {client.expiryDate && (
+                          <div style={{ 
+                            fontSize: isSmallMobile ? 11 : 12, 
+                            color: '#6b7280', 
+                            marginTop: 2 
+                          }}>
+                            {new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Status and Activations Row */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: isSmallMobile ? 4 : 6
+                      }}>
+                        <div style={{ 
+                          color: '#059669', 
+                          fontWeight: 700,
+                          fontSize: isSmallMobile ? 13 : 14
+                        }}>
+                          التفعيلات: {client.activations || 0}
+                        </div>
+                        <span style={{
+                          background: statusInfo.color,
+                          color: 'white',
+                          padding: isSmallMobile ? '3px 6px' : '4px 8px',
+                          borderRadius: '8px',
+                          fontSize: isSmallMobile ? 11 : 12,
+                          fontWeight: 600,
+                          display: 'inline-block',
+                          minWidth: isSmallMobile ? '60px' : '70px',
+                          textAlign: 'center'
+                        }}>
+                          {statusInfo.status}
+                        </span>
+                      </div>
+                      
+                      {/* Days Left Row */}
+                      <div style={{ 
+                        color: statusInfo.color, 
+                        fontWeight: 600,
+                        fontSize: isSmallMobile ? 13 : 14
+                      }}>
+                        الأيام المتبقية: {statusInfo.daysLeftText}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
