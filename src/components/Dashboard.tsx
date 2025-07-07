@@ -29,27 +29,46 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   color?: string;
   style?: React.CSSProperties;
 }
-const Button: React.FC<ButtonProps> = ({ children, color = '#2563eb', onClick, style = {}, ...props }) => (
-  <button
-    onClick={onClick}
-    style={{
-      background: color,
-      color: 'white',
-      border: 'none',
-      borderRadius: 12,
-      fontFamily: 'Cairo, sans-serif',
-      fontWeight: 600,
-      fontSize: '1rem',
-      padding: '0.75rem 1.5rem',
-      boxShadow: '0 2px 8px 0 rgba(59,130,246,0.08)',
-      cursor: 'pointer',
-      minWidth: 120,
-      transition: 'background 0.15s',
-      ...style
-    }}
-    {...props}
-  >{children}</button>
-);
+const Button: React.FC<ButtonProps> = ({ children, color = '#2563eb', onClick, style = {}, ...props }) => {
+  const isMobile = window.innerWidth <= 768;
+  const isSmallMobile = window.innerWidth <= 480;
+  
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: color,
+        color: 'white',
+        border: 'none',
+        borderRadius: isSmallMobile ? 8 : isMobile ? 10 : 12,
+        fontFamily: 'Cairo, sans-serif',
+        fontWeight: 600,
+        fontSize: isSmallMobile ? '0.75rem' : isMobile ? '0.875rem' : '1rem',
+        padding: isSmallMobile ? '0.5rem 0.75rem' : isMobile ? '0.625rem 1rem' : '0.75rem 1.5rem',
+        boxShadow: '0 2px 8px 0 rgba(59,130,246,0.08)',
+        cursor: 'pointer',
+        minWidth: isSmallMobile ? 80 : isMobile ? 100 : 120,
+        transition: 'background 0.15s, transform 0.15s',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+        ...style
+      }}
+      onMouseEnter={e => {
+        if (!isSmallMobile) {
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.background = '#1e40af';
+        }
+      }}
+      onMouseLeave={e => {
+        if (!isSmallMobile) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.background = color;
+        }
+      }}
+      {...props}
+    >{children}</button>
+  );
+};
 
 interface StatsCardProps {
   title: string;
@@ -136,7 +155,7 @@ const StatsGrid: React.FC<StatsGridProps> = ({ children }) => {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: isSmallMobile ? '1fr' : isMobile ? 'repeat(auto-fit, minmax(250px, 1fr))' : 'repeat(auto-fit, minmax(280px, 1fr))',
+      gridTemplateColumns: isSmallMobile ? 'repeat(2, 1fr)' : isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(280px, 1fr))',
       gap: isSmallMobile ? '0.5rem' : isMobile ? '0.75rem' : '1rem',
       margin: isSmallMobile ? '0.5rem 0' : isMobile ? '0.75rem 0' : '1rem 0',
       width: '100%',
@@ -149,40 +168,40 @@ const StatsGrid: React.FC<StatsGridProps> = ({ children }) => {
 
 // Main Dashboard
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalClients: 0,
-    totalDevices: 0,
-    expiringLicenses: 0,
-    activeLicenses: 0,
-    expiredLicenses: 0,
-    duplicateClients: 0,
+    const [stats, setStats] = useState<DashboardStats>({
+        totalClients: 0,
+        totalDevices: 0,
+        expiringLicenses: 0,
+        activeLicenses: 0,
+        expiredLicenses: 0,
+        duplicateClients: 0,
     expiringInWeek: 0,
     expiringInMonth: 0
-  });
-  const [clientData, setClientData] = useState<ProcessedClient[]>([]);
-  const [filteredData, setFilteredData] = useState<ProcessedClient[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+    });
+    const [clientData, setClientData] = useState<ProcessedClient[]>([]);
+    const [filteredData, setFilteredData] = useState<ProcessedClient[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft'>('expiryDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [filters, setFilters] = useState<FilterOptions>({
-    showActive: true,
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [filters, setFilters] = useState<FilterOptions>({
+        showActive: true,
     showExpired: false,
-    showExpiringSoon: true,
-    showDuplicateClients: true,
-    showHighValueClients: true,
-    showLowActivityClients: true,
-    dateRange: { start: null, end: null },
-    selectedProducts: [],
-    minActivations: 0,
-    maxActivations: 999999,
-    minDevices: 0,
-    maxDevices: 999999,
-    expiringInDays: null,
-    clientNamePattern: '',
-    licenseKeyPattern: ''
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
+        showExpiringSoon: true,
+        showDuplicateClients: true,
+        showHighValueClients: true,
+        showLowActivityClients: true,
+        dateRange: { start: null, end: null },
+        selectedProducts: [],
+        minActivations: 0,
+        maxActivations: 999999,
+        minDevices: 0,
+        maxDevices: 999999,
+        expiringInDays: null,
+        clientNamePattern: '',
+        licenseKeyPattern: ''
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [isExporting, setIsExporting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalData, setModalData] = useState<ProcessedClient[]>([]);
@@ -199,52 +218,52 @@ const Dashboard: React.FC = () => {
   // Fix NotificationData type for notification state
   const [notification, setNotification] = useState<{ message: string; type: 'info' | 'error' | 'success' | 'warning'; isVisible: boolean }>({ message: '', type: 'info', isVisible: false });
 
-  const history = useHistory();
+    const history = useHistory();
 
-  // Load data on component mount
-  useEffect(() => {
-    const loadData = () => {
-      try {
-        const storedData = localStorage.getItem('clientData');
-        if (storedData) {
-          const data: ProcessedClient[] = JSON.parse(storedData);
-          setClientData(data);
-          const calculatedStats = calculateDashboardStats(data);
-          setStats(calculatedStats);
-        }
-      } catch (error) {
+    // Load data on component mount
+    useEffect(() => {
+        const loadData = () => {
+            try {
+                const storedData = localStorage.getItem('clientData');
+                if (storedData) {
+                    const data: ProcessedClient[] = JSON.parse(storedData);
+                    setClientData(data);
+                    const calculatedStats = calculateDashboardStats(data);
+                    setStats(calculatedStats);
+                }
+            } catch (error) {
         setNotification({ message: 'خطأ في تحميل البيانات', type: 'error', isVisible: true });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadData();
+    }, []);
 
-  // Filter and sort data when dependencies change
-  useEffect(() => {
-    let filtered = clientData;
-    filtered = filterDataByStatus(filtered, filters);
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(client =>
-        (client.clientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (client.licenseName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (client.product?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (client.licenseKey?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-      );
-    }
+    // Filter and sort data when dependencies change
+    useEffect(() => {
+        let filtered = clientData;
+        filtered = filterDataByStatus(filtered, filters);
+        if (searchTerm.trim()) {
+            filtered = filtered.filter(client => 
+                (client.clientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (client.licenseName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (client.product?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                (client.licenseKey?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+            );
+        }
 
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'clientName':
-          comparison = (a.clientName || '').localeCompare(b.clientName || '');
-          break;
-        case 'product':
-          comparison = (a.product || '').localeCompare(b.product || '');
-          break;
+        // Apply sorting
+        filtered.sort((a, b) => {
+            let comparison = 0;
+            
+            switch (sortBy) {
+                case 'clientName':
+                    comparison = (a.clientName || '').localeCompare(b.clientName || '');
+                    break;
+                case 'product':
+                    comparison = (a.product || '').localeCompare(b.product || '');
+                    break;
         case 'licenseKey':
           comparison = (a.licenseKey || '').localeCompare(b.licenseKey || '');
           break;
@@ -264,14 +283,14 @@ const Dashboard: React.FC = () => {
           const daysB = getClientStatus(b.expiryDate).daysLeft;
           comparison = (daysA ?? 0) - (daysB ?? 0);
           break;
-        default:
-          comparison = 0;
-      }
+                default:
+                    comparison = 0;
+            }
 
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
 
-    setFilteredData(filtered);
+        setFilteredData(filtered);
   }, [clientData, searchTerm, filters, sortBy, sortOrder]);
 
   // Card click handler
@@ -316,31 +335,31 @@ const Dashboard: React.FC = () => {
   };
 
   // Export
-  const handleExportToExcel = useCallback(async () => {
-    if (filteredData.length === 0) {
+    const handleExportToExcel = useCallback(async () => {
+        if (filteredData.length === 0) {
       setNotification({ message: 'لا توجد بيانات للتصدير', type: 'error', isVisible: true });
-      return;
-    }
-    setIsExporting(true);
-    try {
-      const result = exportFilteredData(
-        clientData,
-        filters,
-        searchTerm,
-        sortBy,
-        sortOrder
-      );
-      if (result.success) {
+            return;
+        }
+        setIsExporting(true);
+        try {
+            const result = exportFilteredData(
+                clientData,
+                filters,
+                searchTerm,
+                sortBy,
+                sortOrder
+            );
+            if (result.success) {
         setNotification({ message: `تم تصدير البيانات بنجاح! اسم الملف: ${result.filename}`, type: 'success', isVisible: true });
-      } else {
+            } else {
         setNotification({ message: `خطأ في تصدير البيانات: ${result.error}`, type: 'error', isVisible: true });
-      }
-    } catch (error) {
+            }
+        } catch (error) {
       setNotification({ message: 'حدث خطأ أثناء تصدير البيانات', type: 'error', isVisible: true });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [filteredData.length, clientData, filters, searchTerm, sortBy, sortOrder]);
+        } finally {
+            setIsExporting(false);
+        }
+    }, [filteredData.length, clientData, filters, searchTerm, sortBy, sortOrder]);
 
   // Get available products for filter
   const availableProducts = useMemo(() => {
@@ -402,11 +421,11 @@ const Dashboard: React.FC = () => {
 
   const handleSort = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
     if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
       setSortBy(column);
-      setSortOrder('asc');
-    }
+            setSortOrder('asc');
+        }
   };
 
   const getSortIcon = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
@@ -485,7 +504,7 @@ const Dashboard: React.FC = () => {
   if (isLoading) return <Spinner message="جاري تحميل البيانات..." />;
   if (clientData.length === 0) return <Card><h2>لا توجد بيانات متاحة</h2></Card>;
 
-  return (
+    return (
     <div style={{ 
       padding: window.innerWidth <= 768 ? '0.5rem' : '1rem',
       maxWidth: '100%',
@@ -494,69 +513,75 @@ const Dashboard: React.FC = () => {
       direction: 'rtl'
     }}>
       <Notification notification={notification} onClose={() => setNotification({ ...notification, isVisible: false })} />
-      <div style={{ 
-        display: 'flex', 
+            <div style={{
+        display: 'flex',
         flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
         alignItems: window.innerWidth <= 768 ? 'stretch' : 'center',
         justifyContent: 'space-between',
-        gap: window.innerWidth <= 768 ? '1rem' : '0'
+        gap: window.innerWidth <= 768 ? '1.5rem' : '0',
+        padding: window.innerWidth <= 480 ? '1rem 0' : window.innerWidth <= 768 ? '1.25rem 0' : '1.5rem 0'
       }}>
-        <div>
+                <div>
           <h1 style={{ 
-            fontSize: window.innerWidth <= 480 ? '1.5rem' : window.innerWidth <= 768 ? '1.75rem' : '2rem',
+            fontSize: window.innerWidth <= 480 ? '1.25rem' : window.innerWidth <= 768 ? '1.5rem' : '2rem',
             fontWeight: 700, 
             color: '#1e293b',
             margin: 0,
-            marginBottom: window.innerWidth <= 768 ? '0.5rem' : '0.25rem'
+            marginBottom: window.innerWidth <= 768 ? '0.5rem' : '0.25rem',
+            lineHeight: 1.2
           }}>
             لوحة التحكم
           </h1>
           <p style={{ 
             color: '#6b7280', 
             margin: 0,
-            fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem'
+            fontSize: window.innerWidth <= 480 ? '0.8rem' : window.innerWidth <= 768 ? '0.875rem' : '1rem',
+            lineHeight: 1.4
           }}>
             إدارة تراخيص العملاء والمنتجات
-          </p>
-        </div>
+                    </p>
+                </div>
         <div style={{ 
           display: 'flex', 
-          gap: '0.5rem',
+          gap: window.innerWidth <= 480 ? '0.75rem' : '1rem',
           flexWrap: window.innerWidth <= 768 ? 'wrap' : 'nowrap',
-          justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end'
+          justifyContent: window.innerWidth <= 768 ? 'center' : 'flex-end',
+          alignItems: 'center'
         }}>
           <Button
             onClick={() => history.push('/upload')}
             color="#059669"
             style={{ 
-              minWidth: window.innerWidth <= 480 ? '100%' : 'auto',
-              fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem',
-              padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.75rem 1.5rem'
+              minWidth: window.innerWidth <= 480 ? 'auto' : 'auto',
+              fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.875rem' : '1rem',
+              padding: window.innerWidth <= 480 ? '0.5rem 0.75rem' : window.innerWidth <= 768 ? '0.625rem 1rem' : '0.75rem 1.5rem',
+              whiteSpace: 'nowrap'
             }}
           >
             📁 رفع ملف جديد
           </Button>
           <Button
-            onClick={handleExportToExcel}
+                        onClick={handleExportToExcel}
             disabled={isExporting}
             color="#7c3aed"
             style={{ 
-              minWidth: window.innerWidth <= 480 ? '100%' : 'auto',
-              fontSize: window.innerWidth <= 480 ? '0.875rem' : '1rem',
-              padding: window.innerWidth <= 480 ? '0.75rem 1rem' : '0.75rem 1.5rem'
+              minWidth: window.innerWidth <= 480 ? 'auto' : 'auto',
+              fontSize: window.innerWidth <= 480 ? '0.75rem' : window.innerWidth <= 768 ? '0.875rem' : '1rem',
+              padding: window.innerWidth <= 480 ? '0.5rem 0.75rem' : window.innerWidth <= 768 ? '0.625rem 1rem' : '0.75rem 1.5rem',
+              whiteSpace: 'nowrap'
             }}
-          >
-            {isExporting ? (
-              <>
-                <div className="spinner"></div>
-                جاري التصدير...
-              </>
-            ) : (
+                    >
+                        {isExporting ? (
+                            <>
+                                <div className="spinner"></div>
+                                جاري التصدير...
+                            </>
+                        ) : (
               '📊 تصدير البيانات'
-            )}
+                        )}
           </Button>
-        </div>
-      </div>
+                </div>
+            </div>
 
       {/* Filter Panel */}
       {/*
@@ -572,42 +597,42 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <StatsGrid>
-        <StatsCard
-          title="إجمالي العملاء"
-          value={stats.totalClients}
-          icon="👥"
+                            <StatsCard
+                                title="إجمالي العملاء"
+                                value={stats.totalClients}
+                                icon="👥"
           color="#3b82f6"
           onClick={() => handleCardClick('totalClients', 'جميع العملاء')}
-        />
-        <StatsCard
-          title="التراخيص النشطة"
-          value={stats.activeLicenses}
-          icon="✅"
+                            />
+                            <StatsCard
+                                title="التراخيص النشطة"
+                                value={stats.activeLicenses}
+                                icon="✅"
           color="#059669"
           onClick={() => handleCardClick('activeLicenses', 'التراخيص النشطة')}
-        />
-        <StatsCard
-          title="التراخيص المنتهية"
-          value={stats.expiredLicenses}
-          icon="❌"
+                            />
+                            <StatsCard
+                                title="التراخيص المنتهية"
+                                value={stats.expiredLicenses}
+                                icon="❌"
           color="#dc2626"
           onClick={() => handleCardClick('expiredLicenses', 'التراخيص المنتهية')}
-        />
-        <StatsCard
+                            />
+                            <StatsCard
           title="تنتهي في هذا الاسبوع"
           value={stats.expiringInWeek}
-          icon="⚠️"
+                                icon="⚠️"
           color="#d97706"
           onClick={() => handleCardClick('expiringInWeek', 'التراخيص التي تنتهي خلال أسبوع')}
-        />
-        <StatsCard
+                            />
+                            <StatsCard
           title="تنتهي في هذا الشهر"
           value={stats.expiringInMonth}
           icon="⏰"
           color="#7c3aed"
           onClick={() => handleCardClick('expiringInMonth', 'التراخيص التي تنتهي خلال شهر')}
-        />
-        <StatsCard
+                            />
+                            <StatsCard
           title="العملاء المكررون"
           value={stats.duplicateClients}
           icon="🔄"
@@ -653,8 +678,8 @@ const Dashboard: React.FC = () => {
                 direction: 'rtl',
                 minHeight: 44
               }}
-            />
-          </div>
+                            />
+                        </div>
           
           {/* Sort Controls */}
           <div style={{ 
@@ -713,7 +738,7 @@ const Dashboard: React.FC = () => {
             >
               {sortOrder === 'asc' ? '↑' : '↓'}
             </button>
-          </div>
+                    </div>
         </div>
 
         {/* Results Count */}
@@ -877,7 +902,7 @@ const Dashboard: React.FC = () => {
                         <div>
                           <div>{new Date(client.expiryDate).toLocaleDateString('ar-SA')}</div>
                           <div style={{ fontSize: '0.8em', color: '#6b7280', marginTop: 2 }}>{new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                        </div>
+            </div>
                       ) : 'غير محدد'}
                     </td>
                     <td style={{ padding: 12, borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
@@ -1056,6 +1081,7 @@ const Dashboard: React.FC = () => {
       </Card>
 
       {/* Floating Action Button for Mobile */}
+      {/*
       {window.innerWidth <= 768 && (
         <div style={{
           position: 'fixed',
@@ -1133,6 +1159,7 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       )}
+      */}
 
       {/* Modal for stats card details */}
       <Modal isOpen={modalOpen} onClose={() => {
@@ -1889,8 +1916,8 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </Modal>
-    </div>
-  );
+        </div>
+    );
 };
 
 export default Dashboard;

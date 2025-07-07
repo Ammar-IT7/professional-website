@@ -490,15 +490,17 @@ svg.w-12.h-12 { width: 3rem; height: 3rem; }
   text-decoration: none;
   transition: all 0.2s ease-in-out;
   color: #6b7280;
+  background: transparent;
+  border: none;
 }
 
 .nav-link:hover {
   color: #111827;
-  background-color: #f3f4f6;
+  background-color: transparent;
 }
 
 .nav-link.active {
-  background-color: #eff6ff;
+  background-color: transparent;
   color: #2563eb;
 }
 
