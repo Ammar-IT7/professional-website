@@ -144,6 +144,8 @@ const Dashboard: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalData, setModalData] = useState<ProcessedClient[]>([]);
+  const [modalSortBy, setModalSortBy] = useState<'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft'>('expiryDate');
+  const [modalSortOrder, setModalSortOrder] = useState<'asc' | 'desc'>('asc');
   // Fix NotificationData type for notification state
   const [notification, setNotification] = useState<{ message: string; type: 'info' | 'error' | 'success' | 'warning'; isVisible: boolean }>({ message: '', type: 'info', isVisible: false });
 
@@ -347,6 +349,61 @@ const Dashboard: React.FC = () => {
   const getSortIcon = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
     if (sortBy !== column) return '↕️';
     return sortOrder === 'asc' ? '↑' : '↓';
+  };
+
+  // Sort modal data
+  const sortedModalData = useMemo(() => {
+    const sorted = [...modalData];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (modalSortBy) {
+        case 'clientName':
+          comparison = (a.clientName || '').localeCompare(b.clientName || '');
+          break;
+        case 'product':
+          comparison = (a.product || '').localeCompare(b.product || '');
+          break;
+        case 'licenseKey':
+          comparison = (a.licenseKey || '').localeCompare(b.licenseKey || '');
+          break;
+        case 'expiryDate':
+          comparison = new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+          break;
+        case 'activations':
+          comparison = (a.activations || 0) - (b.activations || 0);
+          break;
+        case 'status':
+          const statusA = getClientStatus(a.expiryDate);
+          const statusB = getClientStatus(b.expiryDate);
+          comparison = statusA.status.localeCompare(statusB.status);
+          break;
+        case 'daysLeft':
+          const daysA = getClientStatus(a.expiryDate).daysLeft;
+          const daysB = getClientStatus(b.expiryDate).daysLeft;
+          comparison = (daysA ?? 0) - (daysB ?? 0);
+          break;
+        default:
+          comparison = 0;
+      }
+ 
+      return modalSortOrder === 'asc' ? comparison : -comparison;
+    });
+    return sorted;
+  }, [modalData, modalSortBy, modalSortOrder]);
+
+  const handleModalSort = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
+    if (modalSortBy === column) {
+      setModalSortOrder(modalSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setModalSortBy(column);
+      setModalSortOrder('asc');
+    }
+  };
+
+  const getModalSortIcon = (column: 'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft') => {
+    if (modalSortBy !== column) return '↕️';
+    return modalSortOrder === 'asc' ? '↑' : '↓';
   };
 
   // UI
@@ -634,28 +691,174 @@ const Dashboard: React.FC = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem', fontFamily: 'Cairo, sans-serif' }}>
                   <thead style={{ backgroundColor: '#f9fafb', position: 'sticky', top: 0 }}>
                     <tr>
-                      <th style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151' }}>اسم العميل</th>
-                      <th style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151' }}>المنتج</th>
-                      <th style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151' }}>تاريخ الانتهاء</th>
-                      <th style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151' }}>التفعيلات</th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('clientName')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب اسم العميل"
+                      >
+                        اسم العميل {getModalSortIcon('clientName')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('product')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب المنتج"
+                      >
+                        المنتج {getModalSortIcon('product')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('licenseKey')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب مفتاح الترخيص"
+                      >
+                        مفتاح الترخيص {getModalSortIcon('licenseKey')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('expiryDate')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب تاريخ الانتهاء"
+                      >
+                        تاريخ الانتهاء {getModalSortIcon('expiryDate')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('status')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب حالة الترخيص"
+                      >
+                        الحالة {getModalSortIcon('status')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('daysLeft')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب الأيام المتبقية"
+                      >
+                        الأيام المتبقية {getModalSortIcon('daysLeft')}
+                      </th>
+                      <th 
+                        style={{ 
+                          padding: 12, 
+                          textAlign: 'right', 
+                          borderBottom: '1px solid #e5e7eb', 
+                          fontWeight: 'bold', 
+                          color: '#374151',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onClick={() => handleModalSort('activations')}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                        title="انقر للترتيب حسب عدد التفعيلات"
+                      >
+                        التفعيلات {getModalSortIcon('activations')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {modalData.map((client, index) => (
-                      <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                        <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{client.clientName || 'غير محدد'}</td>
-                        <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{client.product || 'غير محدد'}</td>
-                        <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
-                          {client.expiryDate ? (
-                            <div>
-                              <div>{new Date(client.expiryDate).toLocaleDateString('ar-SA')}</div>
-                              <div style={{ fontSize: '0.8em', color: '#6b7280', marginTop: 2 }}>{new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                            </div>
-                          ) : 'غير محدد'}
-                        </td>
-                        <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{client.activations || 0}</td>
-                      </tr>
-                    ))}
+                    {sortedModalData.map((client, index) => {
+                      const statusInfo = getClientStatus(client.expiryDate);
+                      return (
+                        <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'Cairo, sans-serif', direction: 'rtl' }}>{client.client || 'غير محدد'}</td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{client.product || 'غير محدد'}</td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'monospace', direction: 'ltr' }}>{client.licenseKey || 'غير محدد'}</td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                            {client.expiryDate ? (
+                              <div>
+                                <div>{new Date(client.expiryDate).toLocaleDateString('ar-SA')}</div>
+                                <div style={{ fontSize: '0.8em', color: '#6b7280', marginTop: 2 }}>{new Date(client.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                              </div>
+                            ) : 'غير محدد'}
+                          </td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                            <span style={{
+                              background: statusInfo.color,
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.85em',
+                              fontWeight: 600,
+                              display: 'inline-block',
+                              minWidth: '80px',
+                              textAlign: 'center'
+                            }}>
+                              {statusInfo.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontWeight: 600 }}>
+                            <span style={{ color: statusInfo.color }}>
+                              {statusInfo.daysLeftText}
+                            </span>
+                          </td>
+                          <td style={{ padding: 12, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{client.activations || 0}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
