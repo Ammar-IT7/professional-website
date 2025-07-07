@@ -355,11 +355,9 @@ export const calculateDashboardStats = (data: ProcessedClient[]): DashboardStats
         return expiryDate <= thirtyDaysFromNow && expiryDate >= now;
     }).length;
 
-    // Calculate duplicate clients
-    const clientNames = data.map(client => client.clientName);
-    const duplicateClients = clientNames.filter((name, index) => 
-        clientNames.indexOf(name) !== index
-    ).length;
+    // Calculate duplicate clients - count total records for duplicate clients
+    const duplicateData = getDuplicateClientsWithDetails(data);
+    const duplicateClients = duplicateData.reduce((total, group) => total + group.records.length, 0);
 
     // Calculate licenses expiring in a week
     const expiringInWeek = data.filter(client => {

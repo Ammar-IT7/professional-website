@@ -188,6 +188,13 @@ const Dashboard: React.FC = () => {
   const [modalData, setModalData] = useState<ProcessedClient[]>([]);
   const [modalSortBy, setModalSortBy] = useState<'expiryDate' | 'clientName' | 'product' | 'licenseKey' | 'activations' | 'status' | 'daysLeft'>('expiryDate');
   const [modalSortOrder, setModalSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [isDuplicateClientsModal, setIsDuplicateClientsModal] = useState(false);
+  const [duplicateGroups, setDuplicateGroups] = useState<Array<{
+    clientName: string;
+    records: ProcessedClient[];
+    latestActivation: Date;
+    oldestActivation: Date;
+  }>>([]);
   // Fix NotificationData type for notification state
   const [notification, setNotification] = useState<{ message: string; type: 'info' | 'error' | 'success' | 'warning'; isVisible: boolean }>({ message: '', type: 'info', isVisible: false });
 
@@ -285,12 +292,24 @@ const Dashboard: React.FC = () => {
         const expiryDate = new Date(c.expiryDate);
         return expiryDate > now && expiryDate <= monthFromNow;
       });
+      case 'duplicateClients': {
+        // Get all duplicate client records
+        const duplicateData = getDuplicateClientsWithDetails(clientData);
+        return duplicateData.flatMap(group => group.records);
+      }
       default: return [];
     }
   };
   const handleCardClick = (type: string, title: string) => {
     setModalTitle(title);
-    setModalData(getCardData(type));
+    if (type === 'duplicateClients') {
+      const duplicateData = getDuplicateClientsWithDetails(clientData);
+      setDuplicateGroups(duplicateData);
+      setIsDuplicateClientsModal(true);
+    } else {
+      setModalData(getCardData(type));
+      setIsDuplicateClientsModal(false);
+    }
     setModalOpen(true);
   };
 
@@ -1104,7 +1123,147 @@ const Dashboard: React.FC = () => {
       {/* Modal for stats card details */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle} focusTrap escToClose>
         <div style={{ minHeight: 200 }}>
-          {modalData.length > 0 ? (
+          {isDuplicateClientsModal ? (
+            // Duplicate clients grouped view
+            <div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1rem',
+              }}>
+                <div style={{
+                  padding: '1rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e2e8f0',
+                  fontFamily: 'Cairo, sans-serif',
+                }}>
+                  <div style={{ fontWeight: 'bold', color: '#374151', marginBottom: '0.5rem' }}>إجمالي العملاء المكررين</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#059669' }}>{duplicateGroups.length}</div>
+                </div>
+                <div style={{
+                  padding: '1rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e2e8f0',
+                  fontFamily: 'Cairo, sans-serif',
+                }}>
+                  <div style={{ fontWeight: 'bold', color: '#374151', marginBottom: '0.5rem' }}>إجمالي السجلات</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc2626' }}>{duplicateGroups.reduce((total, group) => total + group.records.length, 0)}</div>
+                </div>
+              </div>
+              <div style={{ maxHeight: 500, overflow: 'auto' }}>
+                {duplicateGroups.map((group, groupIndex) => (
+                  <div key={groupIndex} style={{ 
+                    marginBottom: '1.5rem', 
+                    border: '2px solid #e5e7eb', 
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden',
+                    backgroundColor: '#fafafa'
+                  }}>
+                    {/* Group Header */}
+                    <div style={{
+                      padding: '1rem',
+                      backgroundColor: '#fef3c7',
+                      borderBottom: '2px solid #e5e7eb',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#92400e' }}>🔄</span>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#92400e', fontFamily: 'Cairo, sans-serif' }}>
+                          {group.clientName}
+                        </span>
+                        <span style={{
+                          background: '#dc2626',
+                          color: 'white',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.8em',
+                          fontWeight: 600
+                        }}>
+                          {group.records.length} سجل
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: '#6b7280', fontFamily: 'Cairo, sans-serif' }}>
+                        <div>أحدث تفعيل: {group.latestActivation.toLocaleDateString('ar-SA')}</div>
+                        <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.latestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                        <div style={{ marginTop: '0.5rem' }}>أقدم تفعيل: {group.oldestActivation.toLocaleDateString('ar-SA')}</div>
+                        <div style={{ fontSize: '0.8em', color: '#9ca3af', marginTop: 2 }}>{group.oldestActivation.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Group Records Table */}
+                    <div style={{ overflow: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', fontFamily: 'Cairo, sans-serif' }}>
+                        <thead style={{ backgroundColor: '#f9fafb' }}>
+                          <tr>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>المنتج</th>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>مفتاح الترخيص</th>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ التفعيل</th>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>تاريخ الانتهاء</th>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الحالة</th>
+                            <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #e5e7eb', fontWeight: 'bold', color: '#374151', fontSize: '0.85rem' }}>الفعيلات</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.records.map((record, recordIndex) => {
+                            const statusInfo = getClientStatus(record.expiryDate);
+                            return (
+                              <tr key={recordIndex} style={{ 
+                                backgroundColor: recordIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                                borderLeft: recordIndex === 0 ? '4px solid #f59e0b' : 'none'
+                              }}>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.product || 'غير محدد'}</td>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151', fontFamily: 'monospace', direction: 'ltr', fontSize: '0.8rem' }}>{record.licenseKey || 'غير محدد'}</td>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                  {record.activationDate ? (
+                                    <div>
+                                      <div>{new Date(record.activationDate).toLocaleDateString('ar-SA')}</div>
+                                      <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.activationDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                    </div>
+                                  ) : 'غير محدد'}
+                                </td>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                  {record.expiryDate ? (
+                                    <div>
+                                      <div>{new Date(record.expiryDate).toLocaleDateString('ar-SA')}</div>
+                                      <div style={{ fontSize: '0.75em', color: '#6b7280', marginTop: 2 }}>{new Date(record.expiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                    </div>
+                                  ) : 'غير محدد'}
+                                </td>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>
+                                  <span style={{
+                                    background: statusInfo.color,
+                                    color: 'white',
+                                    padding: '3px 6px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.75em',
+                                    fontWeight: 600,
+                                    display: 'inline-block',
+                                    minWidth: '60px',
+                                    textAlign: 'center'
+                                  }}>
+                                    {statusInfo.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#374151' }}>{record.activations || 0}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : modalData.length > 0 ? (
+            // Regular modal view for other stats
             <div>
               <div style={{
                 display: 'grid',
