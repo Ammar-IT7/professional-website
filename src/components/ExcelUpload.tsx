@@ -15,7 +15,7 @@ const ExcelUpload: React.FC = () => {
     const [dragActive, setDragActive] = useState(false);
     const history = useHistory();
 
-    const showNotification = useCallback((message: string, type: 'error' | 'warning' | 'success' | 'info') => {
+    const showNotification = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
         setNotification({
             message,
             type,
@@ -27,19 +27,14 @@ const ExcelUpload: React.FC = () => {
         setNotification(prev => ({ ...prev, isVisible: false }));
     }, []);
 
-    const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = event.target.files?.[0];
+    const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
         if (selectedFile) {
-            if (selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                selectedFile.type === 'application/vnd.ms-excel') {
-                localStorage.removeItem('clientData'); // Reset cached data
-                setFile(selectedFile);
-                showNotification('تم اختيار الملف بنجاح', 'success');
-            } else {
-                showNotification('يرجى اختيار ملف Excel صحيح (.xlsx أو .xls)', 'error');
-            }
+            // Clear cached data when new file is selected
+            localStorage.removeItem('clientData');
+            setFile(selectedFile);
         }
-    }, [showNotification]);
+    }, []);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -57,134 +52,54 @@ const ExcelUpload: React.FC = () => {
         setDragActive(false);
         
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const droppedFile = e.dataTransfer.files[0];
-            if (droppedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                droppedFile.type === 'application/vnd.ms-excel') {
-                localStorage.removeItem('clientData'); // Reset cached data
-                setFile(droppedFile);
-                showNotification('تم رفع الملف بنجاح', 'success');
-            } else {
-                showNotification('يرجى رفع ملف Excel صحيح (.xlsx أو .xls)', 'error');
-            }
+            // Clear cached data when new file is dropped
+            localStorage.removeItem('clientData');
+            setFile(e.dataTransfer.files[0]);
         }
-    }, [showNotification]);
+    }, []);
 
-    const handleUpload = async () => {
+    const removeFile = useCallback(() => {
+        setFile(null);
+        // Clear cached data when file is removed
+        localStorage.removeItem('clientData');
+    }, []);
+
+    const handleUpload = useCallback(async () => {
         if (!file) {
-            showNotification('يرجى اختيار ملف للرفع', 'error');
+            showNotification('يرجى اختيار ملف أولاً', 'error');
             return;
         }
 
         setIsLoading(true);
         try {
-            const data: ProcessedClient[] = await parseExcelFile(file);
+            const processedData = await parseExcelFile(file);
             
-            if (data.length === 0) {
-                showNotification('الملف لا يحتوي على بيانات صحيحة', 'error');
-                // Still allow to proceed to dashboard with empty data
-                localStorage.setItem('clientData', JSON.stringify([]));
+            if (processedData && processedData.length > 0) {
+                // Check for duplicate clients
+                const duplicateClients = checkForDuplicateClients(processedData);
+                if (duplicateClients.length > 0) {
+                    showNotification(`تحذير: تم العثور على ${duplicateClients.length} عميل مكرر`, 'warning');
+                }
+
+                // Store in localStorage
+                localStorage.setItem('clientData', JSON.stringify(processedData));
+                
+                showNotification('تم رفع ومعالجة الملف بنجاح', 'success');
+                
+                // Navigate to dashboard
                 setTimeout(() => {
                     history.push('/dashboard');
-                }, 2000);
-                setIsLoading(false);
-                return;
-            }
-
-            // 1. Check for missing required columns
-            const requiredColumns = ['ID', 'Client', 'Product', 'Activation Date', 'Expiry Date', 'License Key', 'Activations', 'Hardware IDs', 'License'];
-            const firstRow = data[0] as any;
-            const missingColumns = requiredColumns.filter(col => !(col in firstRow || col.replace(/ /g, '').toLowerCase() in firstRow));
-            if (missingColumns.length > 0) {
-                showNotification(`الأعمدة التالية مفقودة في الملف: ${missingColumns.join(', ')}`, 'warning');
-                // Do not return; just warn and continue
-            }
-
-            // 2. Annotate each row with problems
-            const idCount: Record<string, number> = {};
-            const licenseKeyCount: Record<string, number> = {};
-            data.forEach(row => {
-                idCount[row.id] = (idCount[row.id] || 0) + 1;
-                licenseKeyCount[row.licenseKey] = (licenseKeyCount[row.licenseKey] || 0) + 1;
-            });
-            const now = new Date();
-            data.forEach(row => {
-                const problems: string[] = [];
-                if (!row.id) problems.push('معرف مفقود');
-                if (!row.clientName) problems.push('اسم العميل مفقود');
-                if (!row.product) problems.push('المنتج مفقود');
-                if (!row.licenseKey) problems.push('مفتاح الترخيص مفقود');
-                if (!row.activationDate) problems.push('تاريخ التفعيل مفقود');
-                if (!row.expiryDate) problems.push('تاريخ الانتهاء مفقود');
-                if (!row.license) problems.push('نوع الترخيص مفقود');
-                if (idCount[row.id] > 1) problems.push('معرف مكرر');
-                if (licenseKeyCount[row.licenseKey] > 1) problems.push('مفتاح ترخيص مكرر');
-                if (new Date(row.expiryDate) < now) problems.push('ترخيص منتهي الصلاحية');
-                (row as any).problems = problems;
-            });
-
-            // 3. Show notifications as before (unchanged)
-            const invalidRows = data.filter(row => (row as any).problems && (row as any).problems.length > 0);
-            if (invalidRows.length > 0) {
-                showNotification(`هناك ${invalidRows.length} صفوف تحتوي على مشاكل في البيانات.`, 'warning');
-            }
-
-            // 4. Warn if any expiry date is in the past
-            const expiredRows = data.filter(row => new Date(row.expiryDate) < new Date());
-            if (expiredRows.length > 0) {
-                showNotification(`هناك ${expiredRows.length} ترخيص منتهي الصلاحية في الملف.`, 'warning');
-            }
-
-            // Check for duplicate client names (existing logic)
-            const duplicateClients = checkForDuplicateClients(data);
-            
-            if (duplicateClients.length > 0) {
-                showNotification(
-                    `تم العثور على أسماء عملاء مكررة: ${duplicateClients.join(', ')}`,
-                    'warning'
-                );
+                }, 1000);
             } else {
-                showNotification('تم رفع الملف بنجاح!', 'success');
+                showNotification('الملف لا يحتوي على بيانات صحيحة', 'error');
             }
-
-            // Store data in localStorage for dashboard access
-            localStorage.setItem('clientData', JSON.stringify(data));
-            
-            // Navigate to dashboard after a short delay
-            setTimeout(() => {
-                history.push('/dashboard');
-            }, 2000);
-
         } catch (error) {
-            console.error('Error uploading file:', error);
-            showNotification('خطأ في رفع الملف. يرجى التحقق من تنسيق الملف والمحاولة مرة أخرى.', 'error');
+            console.error('Upload error:', error);
+            showNotification('حدث خطأ أثناء معالجة الملف', 'error');
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const removeFile = () => {
-        setFile(null);
-        showNotification('تم إزالة الملف', 'info');
-    };
-
-    // Auto-load default.xlsx from public folder if no file is selected
-    // useEffect(() => {
-    //     if (!file) {
-    //         fetch('/LICE.xlsx')
-    //             .then(res => {
-    //                 if (!res.ok) throw new Error('No default.xlsx found');
-    //                 return res.blob();
-    //             })
-    //             .then(blob => {
-    //                 const defaultFile = new File([blob], 'LICE.xlsx', { type: blob.type });
-    //                 setFile(defaultFile);
-    //                 showNotification('تم تحميل ملف LICE.xlsx تلقائيًا', 'info');
-    //             })
-    //             .catch(() => {
-    //                 // No default file found, do nothing
-    //             });
-    //     }
-    // }, [file, showNotification]);
+    }, [file, history, showNotification]);
 
     return (
         <div className="container" style={{ maxWidth: '64rem', margin: '0 auto' }}>
@@ -269,7 +184,7 @@ const ExcelUpload: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={removeFile}
-                                        className="btn btn-outline"
+                                        className="btn btn-secondary"
                                     >
                                         إزالة الملف
                                     </button>
@@ -279,42 +194,30 @@ const ExcelUpload: React.FC = () => {
                     </div>
 
                     {/* Required Columns Info */}
-                    <div className="mt-8 bg-gray-50 rounded-lg p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">
                             الأعمدة المطلوبة في ملف Excel:
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <h4 className="font-medium text-gray-700 mb-2">المعلومات الأساسية:</h4>
-                                <ul className="space-y-1 text-sm text-gray-600">
-                                    <li>• ID - المعرف</li>
-                                    <li>• Client - العميل</li>
-                                    <li>• Product - المنتج</li>
-                                    <li>• License - الترخيص</li>
+                                <h4 className="font-medium text-gray-800 mb-2">الأعمدة الأساسية:</h4>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                    <li>• اسم العميل (Client Name)</li>
+                                    <li>• المنتج (Product)</li>
+                                    <li>• تاريخ انتهاء الصلاحية (Expiry Date)</li>
+                                    <li>• عدد التفعيلات (Activations)</li>
+                                    <li>• مفتاح الترخيص (License Key)</li>
                                 </ul>
                             </div>
                             <div>
-                                <h4 className="font-medium text-gray-700 mb-2">التواريخ والمفاتيح:</h4>
-                                <ul className="space-y-1 text-sm text-gray-600">
-                                    <li>• Activation Date - تاريخ التفعيل</li>
-                                    <li>• Expiry Date - تاريخ الانتهاء</li>
-                                    <li>• License Key - مفتاح الترخيص</li>
-                                    <li>• Activations - التفعيلات</li>
-                                    <li>• Hardware IDs - معرفات الأجهزة</li>
+                                <h4 className="font-medium text-gray-800 mb-2">الأعمدة الاختيارية:</h4>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                    <li>• عدد الأجهزة (Devices)</li>
+                                    <li>• ملاحظات (Notes)</li>
+                                    <li>• حالة الترخيص (Status)</li>
                                 </ul>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Instructions */}
-                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-900 mb-2">تعليمات مهمة:</h4>
-                        <ul className="text-sm text-blue-800 space-y-1">
-                            <li>• تأكد من أن الملف يحتوي على جميع الأعمدة المطلوبة</li>
-                            <li>• يجب أن تكون التواريخ بتنسيق صحيح (YYYY-MM-DD)</li>
-                            <li>• معرفات الأجهزة يجب أن تكون مفصولة بفواصل</li>
-                            <li>• سيتم معالجة البيانات تلقائياً وإزالة التكرارات</li>
-                        </ul>
                     </div>
                 </div>
             </div>
